@@ -1,0 +1,9 @@
+anthropic
+faster-whisper
+httpx
+numpy
+pyserial
+python-dotenv
+sounddevice
+soundfile
+websockets>=14
