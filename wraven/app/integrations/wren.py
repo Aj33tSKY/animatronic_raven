@@ -14,7 +14,7 @@ run sends, run this file on its own:
     python wren.py --project pizza "What topics does this project have?"
 
 Needs POLYAI_PAT (a personal access token) in .env, plus the WREN_ settings
-in config.py.
+in settings.py.
 """
 import argparse
 import asyncio
@@ -26,9 +26,9 @@ from pathlib import Path
 
 import httpx
 
-import config
+import settings
 
-LOG_DIR = Path(__file__).with_name("logs")
+LOG_DIR = settings.LOGS_DIR
 SESSION_KEYS = ("sessionId", "session_id", "conversationId", "conversation_id")
 TEXT_KEYS = ("text", "message", "content", "summary", "report", "markdown", "body")
 
@@ -82,20 +82,20 @@ class Wren:
         self.jobs = []
         self.on_update = on_update or (lambda job, kind: None)  # kind: done, question or failed
         self.client = client or httpx.AsyncClient(
-            base_url=config.WREN_BASE_URL,
-            timeout=httpx.Timeout(30, read=config.WREN_READ_TIMEOUT_S))
+            base_url=settings.WREN_BASE_URL,
+            timeout=httpx.Timeout(30, read=settings.WREN_READ_TIMEOUT_S))
 
     @property
     def ready(self):
-        return bool(self.token and config.WREN_ACCOUNT_ID and config.WREN_PROJECTS)
+        return bool(self.token and settings.WREN_ACCOUNT_ID and settings.WREN_PROJECTS)
 
     def find(self, number):
         return next((job for job in self.jobs if job.number == number), None)
 
     def start(self, project, request, follow_up=None):
         """Send a (confirmed) request to Wren and return its job straight away."""
-        if project not in config.WREN_PROJECTS:
-            raise ValueError(f"unknown project {project!r}; known: {', '.join(config.WREN_PROJECTS)}")
+        if project not in settings.WREN_PROJECTS:
+            raise ValueError(f"unknown project {project!r}; known: {', '.join(settings.WREN_PROJECTS)}")
         job = WrenJob(len(self.jobs) + 1, project, request)
         earlier = self.find(follow_up) if follow_up else None
         if earlier and earlier.session_id and earlier.project == project:
@@ -142,9 +142,9 @@ class Wren:
             "answer": {"inputKind": question["kind"], "value": value}}))
 
     async def _run(self, job, body):
-        body["context"] = {"accountId": config.WREN_ACCOUNT_ID,
-                           "projectId": config.WREN_PROJECTS[job.project],
-                           "mode": config.WREN_MODE}
+        body["context"] = {"accountId": settings.WREN_ACCOUNT_ID,
+                           "projectId": settings.WREN_PROJECTS[job.project],
+                           "mode": settings.WREN_MODE}
         if job.session_id:
             body["sessionId"] = job.session_id
         job.status, job.error, job.finished = "working", None, False
@@ -296,7 +296,7 @@ async def probe(project, prompt):
         print(json.dumps(job.describe(), indent=2))
     wren = Wren(on_update)
     if not wren.ready:
-        raise SystemExit("Set POLYAI_PAT in .env and WREN_ACCOUNT_ID / WREN_PROJECTS in config.py")
+        raise SystemExit("Set POLYAI_PAT in .env and WREN_ACCOUNT_ID / WREN_PROJECTS in settings.py")
     original_read = wren._read
 
     def show(job, name, data):
@@ -312,7 +312,7 @@ async def probe(project, prompt):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Send one request to Wren and show its raw events.")
-    parser.add_argument("--project", required=True, help="a name from WREN_PROJECTS in config.py")
+    parser.add_argument("--project", required=True, help="a name from WREN_PROJECTS in settings.py")
     parser.add_argument("prompt")
     args = parser.parse_args()
     asyncio.run(probe(args.project, args.prompt))

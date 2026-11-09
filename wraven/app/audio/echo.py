@@ -7,7 +7,7 @@ canceller (the one in Chrome and Google Meet) learns how that sound reaches
 the mic, with its delay, loudness and room echo, and subtracts it. What's
 left is mostly your voice.
 
-The speaker and mic both run at 16 kHz, so the reference is an exact copy of
+The speaker (audio/speaker.py) and mic both run at 16 kHz, so the reference is an exact copy of
 what was played.
 """
 import queue

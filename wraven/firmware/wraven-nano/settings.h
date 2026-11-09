@@ -1,7 +1,7 @@
 #ifndef SETTINGS_H
 #define SETTINGS_H
 // ****************************************************************************
-// Voice Crow (Arduino Nano) User Configuration
+// Wraven (Arduino Nano) User Configuration
 // ****************************************************************************
 
 // ============================================================================
@@ -17,7 +17,7 @@
 // ============================================================================
 // BEAK SERVO
 // ============================================================================
-// Calibrated for this crow with the U command (see voiceCrow/README.md, "Calibrate").
+// Calibrated for this crow with the U command (see docs/hardware.md, "Calibrate").
 // Re-check them if the servo arm is ever removed or re-seated.
 #define SERVO_PWM_OPEN                915   // fully open pulse (microseconds)
 #define SERVO_PWM_CLOSED              1185  // fully closed pulse (microseconds)

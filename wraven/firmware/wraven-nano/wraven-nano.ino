@@ -1,6 +1,6 @@
 /*
- * Voice Crow Controller (Arduino Nano)
- * ------------------------------------
+ * Wraven Controller (Arduino Nano)
+ * --------------------------------
  *
  * The laptop listens, thinks and talks. This sketch moves the crow when told
  * to, using one-line commands over USB serial at 115200 baud:
@@ -181,7 +181,7 @@ void handleCommand(char* command) {
 }
 
 void printHelp() {
-  Serial.println(F("\n=== Voice Crow ==="));
+  Serial.println(F("\n=== Wraven ==="));
   Serial.println(F("B<0-100>  beak percent open"));
   Serial.println(F("U<us>     raw beak pulse (calibration)"));
   Serial.println(F("N<pos>    neck position, 0 = center"));

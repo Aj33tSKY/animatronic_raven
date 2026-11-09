@@ -1,5 +1,8 @@
 # Hallowe'en Projects #
 
+> **Wraven:** this fork adds Raven, a version of the crow you can talk to, powered by
+> PolyAI's Dialog-RSN-1. See [wraven/](wraven/README.md).
+
 ___
 ## [Animatronic Crow](animatronicCrow/README.md) ##
 [![The Animatronic Crow](animatronicCrow/images/AniCrow022.jpg)](animatronicCrow/README.md)
