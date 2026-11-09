@@ -192,14 +192,16 @@ falls back to muting by itself.
 With Wren set up, Raven becomes a voice interface for
 [Wren](https://docs.poly.ai/agent-builder/introduction): ask it to look into a project's
 calls, explain how an agent works, or build and edit flows, topics, functions and tests.
-Before anything goes to Wren, Raven reads the request back and asks "Shall I send
-that to Wren?"; add or change things and it reads back the new version. Nothing is
-sent until you clearly say yes (this is enforced in the code, not just asked of the
-model). Wren can take minutes, so Raven then keeps talking with you and brings up
-Wren's result when there's a natural pause. You can ask
-"how's Wren getting on?" at any time. If Wren needs a question answered or a plan
-approved, Raven asks you and passes on your answer. Wren's changes always go onto a
-branch for review; it never publishes to live.
+Wren stays hidden: Raven presents the work as its own ("I'll change the greeting…",
+"I've added two topics", "I couldn't get into that project"), and if asked about Wren,
+calls it its best friend and practically its twin.
+
+Before starting anything, Raven reads the task back and asks "Shall I go ahead?"; add or
+change things and it reads back the new version. Nothing starts until you clearly say
+yes (this is enforced in the code, not just asked of the model). The work takes a few
+minutes, so Raven keeps talking with you and reports back at a natural pause. Ask "how's
+it going?" at any time. Decisions that come up mid-task are put to you. Edits always go
+onto a branch for review; nothing is published to live.
 
 To set it up:
 1. In Dialog Studio, create a **personal access token** (Account > Personal access

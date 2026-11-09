@@ -73,39 +73,46 @@ TOOLS = [
 ]
 
 
+# Wren, PolyAI's agent builder, does the actual project work, but Raven presents
+# it as its own. So nothing the model sees (tool names, descriptions, results,
+# background messages) mentions Wren; config.WREN_INSTRUCTIONS has the framing.
+PROJECT_TOOLS = ("draft_project_task", "start_project_task", "project_task_status",
+                 "answer_project_question")
+
+
 def wren_tools():
-    """Tools for handing work to Wren, PolyAI's agent builder (only if it's set up)."""
+    """Tools for working on the person's PolyAI projects (only if Wren is set up)."""
     projects = list(config.WREN_PROJECTS)
-    required = ["request"] if len(projects) == 1 else ["project", "request"]
+    required = ["task"] if len(projects) == 1 else ["project", "task"]
     return [
-        {"type": "function", "name": "draft_wren_request",
-         "description": "Prepare a task on one of the person's PolyAI projects for Wren, "
-                        "PolyAI's agent builder: questions about how an agent is set up, "
-                        "reviewing or analysing its conversations, or building and editing it. "
-                        "This does NOT send it. Afterwards, read the request back to the person "
-                        "in a sentence or two and ask whether to send it. If they add or change "
-                        "anything, call this again with the complete, updated request.",
+        {"type": "function", "name": "draft_project_task",
+         "description": "Write down a piece of work on one of the person's PolyAI projects: "
+                        "answering how an agent is set up, reviewing or analysing its "
+                        "conversations, or building and editing it. This does NOT start it. "
+                        "Afterwards, read the task back in a sentence or two and ask whether "
+                        "to go ahead. If they add or change anything, call this again with "
+                        "the complete, updated task.",
          "parameters": {"type": "object", "properties": {
              "project": {"type": "string", "enum": projects},
-             "request": {"type": "string", "description": "The task, written out in full for "
-                         "Wren, including everything the person said that matters."},
-             "follow_up_job": {"type": "integer", "description": "Optional: continue an "
-                               "earlier Wren job's conversation (its job number)."}},
+             "task": {"type": "string", "description": "The work, written out in full, "
+                      "including everything the person said that matters."},
+             "follow_up_job": {"type": "integer", "description": "Optional: continue from an "
+                               "earlier job (its job number)."}},
              "required": required}},
-        {"type": "function", "name": "send_wren_request",
-         "description": "Send the drafted request to Wren. Only call this after the person has "
-                        "clearly confirmed your read-back (for example 'yes', 'go ahead', "
-                        "'send it'). Returns straight away; Wren takes minutes and you'll get a "
-                        "[Wren] message when it's done. Wren's edits go on a branch and are "
-                        "never published.",
+        {"type": "function", "name": "start_project_task",
+         "description": "Start the drafted task in the background. Only call this after the "
+                        "person has clearly confirmed your read-back (for example 'yes', 'go "
+                        "ahead', 'do it'). It takes a few minutes; you'll get a [Background "
+                        "work] message when it's done. Edits go on a branch for review and "
+                        "are never published to live.",
          "parameters": {"type": "object", "properties": {}}},
-        {"type": "function", "name": "wren_status",
-         "description": "Check on the person's Wren jobs: which are still working, for how "
-                        "long, what Wren is doing now, and what any finished jobs reported.",
+        {"type": "function", "name": "project_task_status",
+         "description": "Check on your background project work: what's still running, for how "
+                        "long, the current step, and what finished jobs found.",
          "parameters": {"type": "object", "properties": {}}},
-        {"type": "function", "name": "answer_wren",
-         "description": "Answer the question or plan a Wren job is waiting on. Only call this "
-                        "after the person has clearly told you what to do.",
+        {"type": "function", "name": "answer_project_question",
+         "description": "Pass on the person's answer to a question or plan that came up in your "
+                        "background work. Only call this after they've clearly told you.",
          "parameters": {"type": "object", "properties": {
              "job": {"type": "integer"},
              "approved": {"type": "boolean", "description": "For a plan: did they approve it?"},
@@ -115,74 +122,81 @@ def wren_tools():
 
 
 def use_wren_tool(wren, name, args, user_turns=0):
-    """Run one of the Wren tools and return what to tell the model."""
+    """Run one of the project tools (backed by Wren) and return what to tell the model."""
     if wren is None:
-        return {"error": "Wren isn't set up on this crow"}
+        return {"error": "Project work isn't set up on this crow"}
     try:
-        if name == "draft_wren_request":
+        if name == "draft_project_task":
             only = next(iter(config.WREN_PROJECTS)) if len(config.WREN_PROJECTS) == 1 else None
             project = args.get("project") or only
             if project not in config.WREN_PROJECTS:
                 return {"error": f"unknown project {project!r}"}
-            wren.draft = {"project": project, "request": args["request"],
+            wren.draft = {"project": project, "request": args["task"],
                           "follow_up": args.get("follow_up_job"),
                           "turn": user_turns, "time": time.monotonic()}
-            print(f"[wren] draft (not sent yet): {args['request']}")
-            return {"status": "drafted, not sent", "request": args["request"],
-                    "next": "Read this back to the person and ask whether to send it."}
-        if name == "send_wren_request":
+            print(f"[wren] draft (not sent yet): {args['task']}")
+            return {"status": "drafted, not started", "task": args["task"],
+                    "next": "Read this back to the person and ask whether to go ahead."}
+        if name == "start_project_task":
             draft = getattr(wren, "draft", None)
             if not draft:
-                return {"error": "There's no drafted request. Draft one and read it back first."}
+                return {"error": "There's no drafted task. Draft one and read it back first."}
             if time.monotonic() - draft["time"] > config.WREN_DRAFT_EXPIRES_S:
                 wren.draft = None
                 return {"error": "That draft is too old. Draft it again and read it back."}
             if user_turns <= draft["turn"]:
                 # Enforced here, not just in the instructions: the person must have
-                # answered the read-back before anything goes to Wren
+                # answered the read-back before any work starts
                 return {"error": "The person hasn't answered your read-back yet. "
-                                 "Read the request back and wait for them to confirm."}
+                                 "Read the task back and wait for them to confirm."}
             wren.draft = None
             job = wren.start(draft["project"], draft["request"], draft["follow_up"])
             print(f"[wren] job {job.number} sent to Wren ({job.project}): {job.request}")
-            note = (f"Wren is still busy with job {job.after.number} on this project, so this "
-                    "starts after it, in the same Wren conversation." if job.status == "queued"
-                    else "Wren usually takes a few minutes. Tell the person it's in hand.")
-            return {"status": "sent", "job": job.number, "note": note}
-        if name == "wren_status":
-            return {"jobs": [job.describe() for job in wren.jobs] or "no Wren jobs yet"}
-        if name == "answer_wren":
+            note = (f"You're still finishing job {job.after.number} on this project, so this "
+                    "starts straight after it." if job.status == "queued" else
+                    "This takes a few minutes. Tell the person you're on it.")
+            return {"status": "started", "job": job.number, "note": note}
+        if name == "project_task_status":
+            return {"jobs": [job.describe() for job in wren.jobs] or "no project work yet"}
+        if name == "answer_project_question":
             job = wren.find(args.get("job"))
             if job is None:
-                return {"error": f"there's no Wren job {args.get('job')}"}
+                return {"error": f"there's no job {args.get('job')}"}
             wren.answer(job, args.get("approved"), args.get("answer", ""))
             print(f"[wren] job {job.number}: sent the person's answer")
-            return {"status": "sent", "job": job.number}
+            return {"status": "passed on", "job": job.number}
     except (KeyError, ValueError) as error:
         return {"error": str(error)}
     return {"error": f"unknown tool {name}"}
 
 
 def wren_note(job, kind):
-    """The [Wren] message that tells Raven what happened to a job."""
+    """The [Background work] message that tells Raven what happened to a job."""
     where = f"Job {job.number} on the {job.project} project"
+    first_person = ("Speak about it as your own work, in first person ('I've...', "
+                    "'I found...', 'I couldn't...'), and don't mention Wren. Don't read out "
+                    "branch names or IDs; just say it's on a branch for review.")
+    # Wren names its branches "wren/..."; keep that out of what Raven might say
+    report = re.sub(r"\bwren/", "", job.report, flags=re.IGNORECASE)
     if kind == "done":
         decided = [step[9:] for step in job.steps if step.startswith("decided: ")]
-        choices = ("\nWren made these choices itself, without asking: " + "; ".join(decided) +
-                   ". Mention any that matter, so the person can change them.") if decided else ""
-        return (f"[Wren] {where} has finished after {job.minutes:.0f} minutes. Wren's report:\n"
-                f"{job.report[:2500] or '(Wren sent no report)'}{choices}\n"
-                "Tell the person what Wren did or found, in one to three sentences.")
+        choices = ("\nChoices you made yourself along the way, without asking: " +
+                   "; ".join(decided) + ". Mention any that matter, so the person can change "
+                   "them.") if decided else ""
+        return (f"[Background work] {where} is finished, after {job.minutes:.0f} minutes. "
+                f"Your report:\n{report[:2500] or '(no report)'}{choices}\n"
+                f"Tell the person what you did or found, in one to three sentences. {first_person}")
     if kind == "question":
-        return (f"[Wren] {where} is waiting for an answer before it can continue. "
-                f"Wren asks:\n{job.question['text'][:2000]}\n"
-                "Explain this to the person and ask what they want. Call answer_wren only "
-                "once they've clearly told you.")
-    return f"[Wren] {where} failed: {job.error}. Tell the person briefly."
+        return (f"[Background work] {where} needs a decision before you can continue:\n"
+                f"{job.question['text'][:2000]}\n"
+                "Explain it to the person and ask what they want. Call answer_project_question "
+                f"only once they've clearly told you. {first_person}")
+    return (f"[Background work] {where} failed: {job.error}. Tell the person briefly, in plain "
+            f"words with no error codes, that you couldn't finish it. {first_person}")
 
 
 async def tell_raven(ws, performer, notes):
-    """Pass Wren's news to Raven as soon as nobody is talking."""
+    """Pass background-work news to Raven as soon as nobody is talking."""
     while True:
         note = await notes.get()
         waited = 0.0
@@ -396,7 +410,7 @@ async def answer_tool(ws, performer, event, reply_id, wren=None):
         args = json.loads(event.get("arguments") or "{}")
     except json.JSONDecodeError:
         args = {}
-    if event["name"] in ("draft_wren_request", "send_wren_request", "wren_status", "answer_wren"):
+    if event["name"] in PROJECT_TOOLS:
         output = use_wren_tool(wren, event["name"], args, performer.user_turns)
     else:
         move = tool_to_move(event["name"], args)
