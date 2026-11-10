@@ -4,7 +4,7 @@ A template for new tools. To use it:
     1. cp tools/_example.py tools/dice.py      and edit the copy
     2. add its tools in tools/__init__.py:      from tools import body, dice, project_work
                                                TOOLS = body.TOOLS + dice.TOOLS + project_work.TOOLS
-    3. optionally, say when to use them in a numbered prompt, e.g. prompts/7-dice.md
+    3. optionally, say when to use them in a numbered prompt, e.g. prompts/8-dice.md
 
 then restart. Each entry in TOOLS is exactly what Dialog-RSN-1 is told about the tool,
 plus "run": the function to call. The description is what the model reads to decide

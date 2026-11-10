@@ -59,7 +59,9 @@ The reply arrives a few words at a time (`response.output_text.delta`):
   `conversation_runtime/performer.py` plays them in order, with the beak following the
   loudness 40 times a second.
 - `response.done` closes the reply. If the model answered from a knowledge topic, it
-  names it in `poly_cited_topics` (printed as `[knowledge] used: …`).
+  names it in `poly_cited_topics` (printed as `[knowledge] used: …`). If it judged the
+  request outside what Raven is for, `poly_out_of_domain` is true (printed as
+  `[out of domain]`).
 
 ## 4. Tools
 
@@ -71,6 +73,20 @@ the reply is done, the matching function runs and its result goes back as a
 `function_call_output`, followed by `response.create` so the model can carry on talking.
 Dialog-RSN-1 makes one tool call per reply (there's no parallel tool calling), so "look
 left, then right" arrives as two replies, one call each.
+
+A few ordering rules keep the session healthy (breaking one makes later replies fail with
+`generation_failed`); they're listed at the top of `conversation_runtime/session.py`:
+
+- A call is answered only once its reply is **done and completed**. If the reply was
+  cancelled (you interrupted) or failed, its call is dropped, never answered.
+- A reply's results go back together, followed by **one** `response.create`, and the
+  `call_id` is passed back exactly as it came.
+- While a call is in flight, **nothing else** goes into the conversation. Our own
+  messages (background news, typed turns) also wait while you're talking, while a reply
+  is open, and for a moment after you stop, while the server starts its own reply.
+
+A tool that fails returns `{"error": ...}`, and `prompts/6-tool-results.md` tells Raven to
+say so plainly rather than pretend it worked.
 
 - **Body** (`tools/body.py`): `caw`, `turn_head`, `shake_head` and `set_eyes` queue a move or
   sound with the Performer and reply `{"ok": true}` at once. The head turns while Raven
@@ -94,13 +110,19 @@ reply. Throughout, the Performer reports how much of each reply has actually pla
 So after an interruption Dialog-RSN-1 knows exactly what you heard (for example,
 *"Once upon a time there was a raven. It was"*), not just what it wrote.
 
+## 6. Staying connected
+
+The server closes a connection that's been idle for 300 seconds. The mic normally keeps
+it busy, but `integrations/dialog_rsn1.py` also sends an empty `session.update` after
+240 seconds of quiet, which changes nothing and keeps the line open.
+
 ## Where to change things
 
 | To change | Edit |
 |---|---|
 | Who Raven is, how it talks, games, turn-taking | `app/prompts/` |
 | What Raven knows | `app/knowledge/` |
-| What Raven can do | `app/tools/` (copy `_example.py` for a new tool) |
+| What Raven can do | `app/tools/` (copy `_example.py`, then add its `TOOLS` in `tools/__init__.py`) |
 | Voice, volume, echo mode, neck and eye behaviour, project-work account | `app/settings.py` |
 | The Dialog-RSN-1 protocol itself | `app/integrations/dialog_rsn1.py` |
 | What Raven does with each event | `app/conversation_runtime/session.py` |

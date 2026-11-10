@@ -80,7 +80,7 @@ it, the terminal shows `[knowledge] used: Topic name`. See `knowledge/README.md`
 `TOOLS` to the list in `tools/__init__.py`. Each file ends with a `TOOLS` list: every entry is
 exactly what Dialog-RSN-1 is told about the tool (name, description, parameters), plus
 `"run"`, the function that runs it. To tell Raven when to use it, add a numbered file to
-`prompts/` (e.g. `7-dice.md`).
+`prompts/` (e.g. `8-dice.md`).
 
 **Knobs.** Voice, volume, echo mode, neck liveliness, eyes and the project-work account
 are in `wraven/app/settings.py`, grouped and commented.
@@ -98,7 +98,9 @@ task back and asks "Shall I go ahead?", and nothing starts until you say yes. Ed
 on a branch for review; nothing is published to live.
 
 To turn it on: put `POLYAI_PAT` in `.env`, and fill in `WREN_ACCOUNT_ID` and
-`WREN_PROJECTS` in `settings.py`. To try Wren on its own and see its raw events:
+`WREN_PROJECTS` in `settings.py`. Without them, Raven still offers project work but says
+it can't do it when asked; to remove it entirely, take `project_work.TOOLS` out of
+`tools/__init__.py` and delete `prompts/7-project-work.md`. To try Wren on its own and see its raw events:
 `python -m integrations.wren --project "Demo restaurant" "What topics does it have?"`.
 Raw events are saved in `wraven/app/logs/` (git ignores it).
 
