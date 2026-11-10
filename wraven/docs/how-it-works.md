@@ -55,7 +55,8 @@ The reply arrives a few words at a time (`response.output_text.delta`):
 - It often starts with an **emotion tag** like `[amused]`. That's stripped and shown in
   the terminal, never spoken.
 - Each **finished sentence** goes straight to ElevenLabs, while the model is still writing
-  the rest, and the next sentence's audio is made while the current one plays.
+  the rest (if ElevenLabs is out of credit, `audio/voice.py` uses the free Piper voice on the
+  laptop instead), and the next sentence's audio is made while the current one plays.
   `conversation_runtime/performer.py` plays them in order, with the beak following the
   loudness 40 times a second.
 - `response.done` closes the reply. If the model answered from a knowledge topic, it

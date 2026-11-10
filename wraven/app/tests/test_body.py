@@ -1,4 +1,6 @@
-"""The body: living neck per state, deliberate looks, and eye effects."""
+"""BOILERPLATE (tests): checks the plumbing still works. Run with: python -m pytest
+
+The body: living neck per state, deliberate looks, and eye effects."""
 import time
 
 import settings

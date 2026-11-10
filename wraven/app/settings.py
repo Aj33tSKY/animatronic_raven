@@ -1,4 +1,6 @@
 """
+CUSTOMISE: the knobs (voice, volume, echo, neck, eyes, project-work account).
+
 Wraven's settings: the knobs you might turn. Prompts are in prompts/, knowledge in
 knowledge/, tools in tools/. API keys go in .env (copy .env.example).
 """
@@ -16,7 +18,7 @@ for name, value in dotenv_values(APP_DIR / ".env").items():
         os.environ[name] = value
 
 
-# --- Where things live -------------------------------------------------------
+# --- Where things live [BOILERPLATE] -----------------------------------------
 PROMPTS_DIR = APP_DIR / "prompts"       # what Raven is told
 KNOWLEDGE_DIR = APP_DIR / "knowledge"   # what Raven knows
 LOGS_DIR = APP_DIR / "logs"             # raw project-work events (git ignores it)
@@ -25,13 +27,13 @@ SCOLD_SOUNDS = range(1, 8)              # 0001.mp3 - 0007.mp3
 SQUAWK_SOUNDS = range(8, 15)            # 0008.mp3 - 0014.mp3
 
 
-# --- Dialog-RSN-1 (PolyAI) ---------------------------------------------------
+# --- Dialog-RSN-1 (PolyAI) [BOILERPLATE] -------------------------------------
 POLY_URL = os.environ.get("DIALOG_REALTIME_URL", "wss://api.studio.poly.ai/v1/realtime")
                               # regional workspaces use their own host, e.g.
                               # "wss://api.us.poly.ai/v1/realtime"
 
 
-# --- Audio devices -----------------------------------------------------------
+# --- Audio devices [CUSTOMISE (setup)] ---------------------------------------
 OUTPUT_DEVICE = "External Headphones"   # None = system default output; part of a device
                                         # name also works. "External Headphones" is the
                                         # Mac's headphone jack feeding the amp
@@ -41,7 +43,7 @@ SPEAKER_VOLUME = 0.5          # 0.0-1.0, scales everything the crow plays. A saf
                               # powerful amps: even at full laptop volume, output stays here
 
 
-# --- Hearing itself ------------------------------------------------------------
+# --- Hearing itself [CUSTOMISE (setup)] --------------------------------------
 ECHO_MODE = "cancel"          # How the mic avoids hearing Raven's own voice:
                               # "cancel": echo cancellation (like video calls). You can
                               #           talk over Raven and interrupt it.
@@ -52,20 +54,26 @@ ECHO_TAIL_S = 0.2             # "mute" only: keep the mic muted this long after 
                               # stops talking. Raise it if the crow answers its own echo
 
 
-# --- Voice (text to speech) --------------------------------------------------
-TTS_ENGINE = "elevenlabs"     # "elevenlabs" (needs ELEVENLABS_API_KEY) or "say" (Mac voices)
+# --- Voice (text to speech) [CUSTOMISE (agent)] ------------------------------
+TTS_ENGINE = "elevenlabs"     # where to start: "elevenlabs" (needs ELEVENLABS_API_KEY and
+                              # credit), "piper" (free, on this laptop) or "say" (Mac voices).
+                              # Each falls back to the next if it fails: see audio/voice.py
 ELEVENLABS_VOICE_ID = "pqHfZKP75CvOlQylNhV4"  # Bill (free premade voice). Library voices such as
                                               # Timothy (qkG6pQFWpZTnYnoQZGFs) need a paid plan
 ELEVENLABS_MODEL = "eleven_flash_v2_5"  # fastest and cheapest. "eleven_v4_turbo" is more expressive
                                         # and nearly as quick; "eleven_v4" sounds best but is slower
 ELEVENLABS_STABILITY = 0.4    # lower = more expressive and varied, higher = steadier
 ELEVENLABS_SPEED = 1.0        # below 1.0 talks slower, above 1.0 faster
-MAC_VOICE = "Daniel"          # Mac voice for "say", and the fallback if ElevenLabs fails.
+PIPER_VOICE = "en_GB-alan-medium"  # the free backup voice, downloaded on first use.
+                              # Others ("en_US-ryan-medium", ...): https://rhasspy.github.io/piper-samples/
+PIPER_SPEED = 1.0             # below 1.0 talks slower, above 1.0 faster
+PIPER_VOICES_DIR = APP_DIR / "voices"
+MAC_VOICE = "Daniel"          # Mac voice for "say", the last resort if the others fail.
                               # List them with: say -v '?'
 MAC_VOICE_RATE = 175          # words per minute (Mac voice only)
 
 
-# --- Lip sync ----------------------------------------------------------------
+# --- Lip sync [crow tuning] --------------------------------------------------
 LIPSYNC_FPS = 40              # beak updates per second
 LIPSYNC_LEAD_S = 0.05         # move the beak this long before the sound, since the
                               # servo needs time to travel. Raise it if the beak lags
@@ -73,12 +81,12 @@ BEAK_MAX_OPEN = 100           # percent; lower it if the beak gapes too wide
 BEAK_GATE = 0.12              # sound quieter than this (0-1) keeps the beak shut
 
 
-# --- The Nano (USB) ------------------------------------------------------------
+# --- The Nano (USB) [crow tuning] --------------------------------------------
 SERIAL_PORT = None            # None = find the Nano automatically, or e.g.
                               # "/dev/cu.usbserial-1410" (Mac), "COM3" (Windows)
 
 
-# --- Neck --------------------------------------------------------------------
+# --- Neck [crow tuning] ------------------------------------------------------
 NECK_SIDE = 700               # steps from center to the end stop (NECK_RANGE / 2 in settings.h)
 NECK_FLIP = False             # set True if "look left" turns the head right
 NECK_LIVELY = True            # small movements by itself, so Raven looks alive
@@ -97,13 +105,13 @@ NECK_FAST = (1000, 2000)      # NECK_SPEED_FAST_MAX, NECK_SPEED_FAST_ACCEL
 NECK_SLOW = (3250, 500)       # NECK_SPEED_SLOW_MAX, NECK_SPEED_SLOW_ACCEL
 
 
-# --- Eyes --------------------------------------------------------------------
+# --- Eyes [crow tuning] ------------------------------------------------------
 EYES_SHOW_STATE = False       # False: always blink. True: pulse while listening,
                               # flicker while thinking, steady while talking
 EYE_EFFECT_S = 3.0            # how long a requested eye effect (pulse, flicker...) lasts
 
 
-# --- Project work (PolyAI's Wren, behind the scenes) ------------------------
+# --- Project work (PolyAI's Wren, behind the scenes) [CUSTOMISE (agent)] -----
 # Raven works on your PolyAI projects in the background and presents it as its
 # own (prompts/7-project-work.md). Off until POLYAI_PAT (a personal access
 # token, not a workspace API key) is in .env and WREN_PROJECTS is filled in.

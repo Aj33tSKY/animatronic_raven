@@ -1,4 +1,6 @@
-"""The protocol rules from PolyAI's own client, which keep a session from failing with
+"""BOILERPLATE (tests): checks the plumbing still works. Run with: python -m pytest
+
+The protocol rules from PolyAI's own client, which keep a session from failing with
 generation_failed: tool calls answered only after a completed reply, one response.create,
 nothing slipped in while a tool call is in flight or the server is about to reply."""
 import asyncio

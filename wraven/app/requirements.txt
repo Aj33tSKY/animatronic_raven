@@ -1,6 +1,7 @@
 httpx
 livekit
 numpy
+piper-tts
 pyserial
 python-dotenv
 sounddevice

@@ -1,4 +1,6 @@
 """
+BOILERPLATE (crow): Raven's body and sound. No need to edit it to build an agent.
+
 How Raven's body behaves: deliberate moves (from tools), a "living" neck that
 moves by itself, and eyes that blink (or follow what Raven is doing).
 

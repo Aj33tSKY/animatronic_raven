@@ -1,4 +1,6 @@
 """
+BOILERPLATE: Dialog-RSN-1 plumbing, the same for any agent. No need to edit it to build one.
+
 PolyAI's Dialog-RSN-1, over its realtime WebSocket API.
 
 This file is only the protocol: what goes over the wire and what comes back.

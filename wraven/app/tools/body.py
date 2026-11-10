@@ -1,4 +1,6 @@
-"""Raven's body: crow calls, head turns, head shakes and eye effects.
+"""CUSTOMISE: part of the agent. Edit this to change what Raven is, knows or does.
+
+Raven's body: crow calls, head turns, head shakes and eye effects.
 How Raven uses them: prompts/5-body.md."""
 
 TURNS = {"left": "look left", "right": "look right", "far_left": "look far left",
@@ -6,6 +8,7 @@ TURNS = {"left": "look left", "right": "look right", "far_left": "look far left"
 EFFECTS = ("pulse", "flicker", "glare", "closed")
 
 
+# CUSTOMISE: each tool's function. Gets `context`, returns a dict that goes back to the model.
 def caw(context, kind):
     if kind not in ("squawk", "scold"):
         return {"error": f"unknown kind of caw: {kind}"}
@@ -34,7 +37,10 @@ def set_eyes(context, effect):
     return {"ok": True}
 
 
-# What Dialog-RSN-1 is told about each tool, and the function that runs it
+# CUSTOMISE: what Dialog-RSN-1 is told about each tool, and the function that runs it.
+# The "description" is what the model reads to decide when to call the tool, so it's
+# the main thing to tune. "parameters" is a JSON schema; its names must match the
+# function's arguments.
 TOOLS = [
     {"name": "caw",
      "description": "Let out a crow call through your speaker. 'squawk' is a short caw; "

@@ -1,4 +1,6 @@
-"""The tools: body moves are queued, and project work never starts without a confirmed read-back."""
+"""BOILERPLATE (tests): checks the plumbing still works. Run with: python -m pytest
+
+The tools: body moves are queued, and project work never starts without a confirmed read-back."""
 import time
 
 import settings

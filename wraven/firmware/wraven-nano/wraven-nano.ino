@@ -1,3 +1,4 @@
+// BOILERPLATE (crow): the Arduino firmware. No need to edit it to build an agent.
 /*
  * Wraven Controller (Arduino Nano)
  * --------------------------------

@@ -1,4 +1,6 @@
 """
+CUSTOMISE: the TOOLS line (which tools Raven has). The rest is boilerplate.
+
 What Raven can do: every tool, in one list.
 
 Each tool file ends with a TOOLS list. Each entry is exactly what Dialog-RSN-1
@@ -17,23 +19,22 @@ A tool's function receives `context` first, then its arguments, and returns a di
 that's sent back to Dialog-RSN-1 as the result ({"error": ...} if it didn't work).
 context has:
   context.performer   queue speech, moves and sounds: performer.add("act", "shake", context.reply_id)
-  context.body        the crow's body (hardware/body.py)
   context.wren        the project-work client, or None
   context.reply_id    the reply this tool call belongs to
   context.user_turns  how many times the person has spoken so far
 """
 from dataclasses import dataclass
 
+# ---- CUSTOMISE: which tools Raven has. Add a new tool file's TOOLS here. ----
 from tools import body, project_work
 
-# Every tool Raven can use
 TOOLS = body.TOOLS + project_work.TOOLS
+# ---- BOILERPLATE from here down: passing tools to Dialog-RSN-1 and running them ----
 
 
 @dataclass
 class Context:
     performer: object = None
-    body: object = None
     wren: object = None
     reply_id: str = None
     user_turns: int = 0

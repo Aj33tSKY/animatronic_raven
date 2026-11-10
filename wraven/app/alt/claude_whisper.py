@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """
+NOT NEEDED FOR THE DEMO: the earlier Claude + Whisper version, kept for comparison.
+
 The earlier version of Raven: Whisper (on this laptop) turns your speech into
 text, Claude answers, and Raven speaks it. Push-to-talk by default. Kept for
 comparison; the main version (start.py) uses Dialog-RSN-1 instead.
@@ -30,7 +32,7 @@ from conversation_runtime.briefing import read_prompt
 from conversation_runtime.performer import Performer
 from hardware.body import Body
 from hardware.nano import Nano, find_port
-from integrations.elevenlabs import synthesize
+from audio.voice import synthesize
 
 # --- This version's own settings ---------------------------------------------
 CLAUDE_MODEL = "claude-opus-5-5"

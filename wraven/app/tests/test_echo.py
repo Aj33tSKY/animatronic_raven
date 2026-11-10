@@ -1,4 +1,6 @@
-"""Echo cancellation removes a delayed, quieter copy of what was played."""
+"""BOILERPLATE (tests): checks the plumbing still works. Run with: python -m pytest
+
+Echo cancellation removes a delayed, quieter copy of what was played."""
 import numpy as np
 import pytest
 

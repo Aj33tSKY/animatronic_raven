@@ -34,7 +34,9 @@ again from the Arduino IDE.
 | Different voice | `ELEVENLABS_VOICE_ID`. On elevenlabs.io open **Voices** and copy a voice's ID (library voices need a paid plan) |
 | Voice too flat, or too erratic | `ELEVENLABS_STABILITY`: lower is more expressive, higher is steadier |
 | Too slow to start speaking | `ELEVENLABS_MODEL = "eleven_flash_v2_5"` is the fastest |
-| `[voice] ElevenLabs failed` | The line is spoken in the Mac voice instead; the message says why (key, credit, voice) |
+| `[voice] ElevenLabs is unavailable` | Out of credit, or the key was refused. Raven switches to the free Piper voice (on this laptop, just as quick) for the rest of the conversation |
+| `[voice] ElevenLabs failed` | A one-off problem; just that sentence uses the Piper voice |
+| A different backup voice | `PIPER_VOICE`: pick one at [rhasspy.github.io/piper-samples](https://rhasspy.github.io/piper-samples/); it downloads on first use. `TTS_ENGINE = "piper"` skips ElevenLabs altogether |
 
 ## Conversation
 

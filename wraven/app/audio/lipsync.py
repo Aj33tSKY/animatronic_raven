@@ -1,4 +1,6 @@
-"""Plays a sound through the crow's speaker while the beak follows its loudness."""
+"""BOILERPLATE (crow): Raven's body and sound. No need to edit it to build an agent.
+
+Plays a sound through the crow's speaker while the beak follows its loudness."""
 import time
 
 import numpy as np

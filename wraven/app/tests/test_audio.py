@@ -1,4 +1,6 @@
-"""The speaker: interruptible playback with lip sync, and a missing output device."""
+"""BOILERPLATE (tests): checks the plumbing still works. Run with: python -m pytest
+
+The speaker: interruptible playback with lip sync, and a missing output device."""
 import threading
 import time
 

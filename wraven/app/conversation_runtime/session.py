@@ -1,4 +1,6 @@
 """
+BOILERPLATE: Dialog-RSN-1 plumbing, the same for any agent. No need to edit it to build one.
+
 The live conversation: what Raven does with each Dialog-RSN-1 event.
 
   speech_started       face the person, listen (and stop talking if Raven was)
@@ -301,7 +303,7 @@ async def run(nano, body, typed_turns=None):
     turns = Turns()
     echo = None if typed_turns else start_echo_cancellation()
     notes = asyncio.Queue()
-    context = tools.Context(performer=performer, body=body, wren=start_project_work(notes))
+    context = tools.Context(performer=performer, wren=start_project_work(notes))
     instructions, tool_list, knowledge = briefing.build()
     print(f"[brief] {len(instructions)} characters of instructions, {len(tool_list)} tools, "
           f"{len(knowledge)} knowledge topics")

@@ -1,4 +1,6 @@
-"""The whole conversation, against a fake Dialog-RSN-1 server, with silent audio."""
+"""BOILERPLATE (tests): checks the plumbing still works. Run with: python -m pytest
+
+The whole conversation, against a fake Dialog-RSN-1 server, with silent audio."""
 import asyncio
 import json
 import time
@@ -78,6 +80,31 @@ def test_talking_over_raven_stops_it_and_reports_what_was_heard(poly, silent_aud
     assert any(e["type"] == "input_audio_buffer.append" for e in received)  # the mic kept streaming
     assert "Fine, I'll stop." in said
 
+
+
+def test_cutting_in_straight_away_still_reports_what_was_heard(poly, silent_audio, monkeypatch, nano):
+    """Interrupted before the first 250 ms report (or before any sound came out):
+    the server must still be told, or it assumes the whole reply was heard."""
+    import time
+    import conversation_runtime.performer as performer
+
+    def slow_voice(text, rate):
+        time.sleep(0.3)  # the voice is still being made when the person cuts in
+        return fakes.np.full(rate, 0.05, fakes.np.float32), rate
+    monkeypatch.setattr(performer, "synthesize", slow_voice)
+
+    async def script(ws, received):
+        await asyncio.sleep(0.2)
+        await fakes.server_reply(ws, "r1", "Your code is 4 8 1 5. Write it down.")
+        await asyncio.sleep(0.05)                                     # cut in at once
+        await ws.send(json.dumps({"type": "input_audio_buffer.speech_started"}))
+        await asyncio.sleep(1.0)
+        await ws.close()
+    received = run_conversation(nano, script, port=8797)
+    reports = [e["type"] for e in received if e.get("response_id") == "r1" and e["type"].startswith("poly.output_audio")]
+    assert reports[:1] == ["poly.output_audio.started"] and "poly.output_audio.stopped" in reports
+    stopped = next(e for e in received if e["type"] == "poly.output_audio.stopped" and e["response_id"] == "r1")
+    assert "4 8 1 5" not in stopped["spoken_text"]
 
 def test_background_news_waits_for_a_quiet_moment(poly, silent_audio, fake_voice, monkeypatch, nano):
     monkeypatch.setattr(settings, "WREN_PROJECTS", {"Demo restaurant": "AGENT-1"})

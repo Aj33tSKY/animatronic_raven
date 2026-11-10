@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """
+BOILERPLATE: Dialog-RSN-1 plumbing, the same for any agent. No need to edit it to build one.
+
 Wraven: talk to the animatronic raven, powered by PolyAI's Dialog-RSN-1.
 
     python start.py                       talk to Raven
@@ -27,7 +29,7 @@ def test_sound(nano, body):
     from audio.lipsync import play
     from audio.speaker import SPEAKER_RATE
     from conversation_runtime.performer import Performer
-    from integrations.elevenlabs import synthesize
+    from audio.voice import synthesize
     print("Saying a test line, then two of the original crow calls ...")
     body.set_state("talk")
     play(nano, *synthesize("Nevermore. I said nevermore, and I meant every word of it.", SPEAKER_RATE))

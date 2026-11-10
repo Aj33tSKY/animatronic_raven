@@ -1,4 +1,6 @@
 """
+BOILERPLATE: Dialog-RSN-1 plumbing, the same for any agent. No need to edit it to build one.
+
 What Raven is told at the start of a conversation:
   - instructions: prompts/*.md, joined in filename order
   - tools: the TOOLS list in tools/__init__.py
