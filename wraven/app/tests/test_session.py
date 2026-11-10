@@ -5,6 +5,7 @@ import time
 
 import httpx
 import pytest
+import websockets
 
 import settings
 from conversation_runtime import session
@@ -24,8 +25,8 @@ def run_conversation(nano, script, typed=None, port=8790, seconds=15):
             settings.POLY_URL = url
             try:
                 await asyncio.wait_for(session.run(nano, Body(nano), typed), seconds)
-            except asyncio.TimeoutError:
-                pass
+            except (asyncio.TimeoutError, websockets.ConnectionClosed):
+                pass  # the fake server hanging up ends the conversation, as in real use
             return received
     return asyncio.run(go())
 
@@ -46,7 +47,7 @@ def test_sentences_tools_and_knowledge(poly, silent_audio, fake_voice, nano, cap
     received = run_conversation(nano, script, typed=["Hello"])
     setup = received[0]["session"]
     assert setup["poly_knowledge"][0]["name"] == "PolyAI"
-    assert {t["name"] for t in setup["tools"]} == {"caw", "turn_head", "shake_head", "set_eyes"}
+    assert {"caw", "turn_head", "shake_head", "set_eyes", "draft_project_task"} <= {t["name"] for t in setup["tools"]}
     assert fake_voice == ["Well, well.", "A visitor!", "There."]  # emotion tag never spoken
     result = next(e for e in received if e["type"] == "conversation.item.create"
                   and e["item"]["type"] == "function_call_output")

@@ -25,7 +25,6 @@ class FakeWren:
 
 
 def context(**kw):
-    tools.groups(tools.Context(wren=object()))  # make sure every tool file is loaded
     return tools.Context(performer=FakePerformer(), **kw)
 
 
@@ -64,6 +63,12 @@ def _with_turns(c, turns):
     return c
 
 
-def test_example_tool_is_not_loaded():
-    names = {d["name"] for d in tools.definitions(tools.groups(tools.Context(wren=object())))}
-    assert "roll_dice" not in names
+def test_example_tool_is_not_in_the_list():
+    assert "roll_dice" not in {entry["name"] for entry in tools.TOOLS}
+
+
+def test_project_work_without_wren_says_it_cannot():
+    c = context(wren=None)
+    for name, args in [("draft_project_task", {"task": "x"}), ("start_project_task", {}),
+                       ("project_task_status", {}), ("answer_project_question", {"job": 1})]:
+        assert "isn't set up" in tools.run(name, args, c)["error"]

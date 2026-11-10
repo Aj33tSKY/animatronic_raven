@@ -38,9 +38,7 @@ class Performer:
         self.lock = threading.Lock()
         self.cancelled = set()          # replies the person interrupted: drop what's left of them
         self.current = None             # (reply id, sentence) playing right now
-        self.user_speaking = False      # Dialog-RSN-1 hears the person talking right now
         self.user_turns = 0             # how many times they've spoken (for read-back confirmation)
-        self.reply_active = False       # Dialog-RSN-1 is writing a reply right now
         self.progress = {}              # reply id -> what's been played and reported
         threading.Thread(target=self._work, daemon=True).start()
         threading.Thread(target=self._report_playback, daemon=True).start()
@@ -178,7 +176,7 @@ class Performer:
             if not progress["started"]:
                 progress["started"] = True
                 self.report({"type": "poly.output_audio.started", "response_id": reply_id})
-            if audio_ms > progress["sent_ms"]:
+            if len(spoken) > progress["sent_len"]:  # only when more words have been heard
                 self.report({"type": "poly.output_audio.delta", "response_id": reply_id,
                              "audio_ms": audio_ms, "delta": spoken[progress["sent_len"]:]})
                 progress["sent_ms"], progress["sent_len"] = audio_ms, len(spoken)

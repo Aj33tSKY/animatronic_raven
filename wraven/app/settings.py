@@ -20,7 +20,7 @@ for name, value in dotenv_values(APP_DIR / ".env").items():
 PROMPTS_DIR = APP_DIR / "prompts"       # what Raven is told
 KNOWLEDGE_DIR = APP_DIR / "knowledge"   # what Raven knows
 LOGS_DIR = APP_DIR / "logs"             # raw project-work events (git ignores it)
-SOUNDS_DIR = APP_DIR.parents[1] / "animatronicCrow" / "mp3"   # the original crow calls
+SOUNDS_DIR = APP_DIR / "sounds"        # the original crow calls
 SCOLD_SOUNDS = range(1, 8)              # 0001.mp3 - 0007.mp3
 SQUAWK_SOUNDS = range(8, 15)            # 0008.mp3 - 0014.mp3
 
@@ -105,7 +105,7 @@ EYE_EFFECT_S = 3.0            # how long a requested eye effect (pulse, flicker.
 
 # --- Project work (PolyAI's Wren, behind the scenes) ------------------------
 # Raven works on your PolyAI projects in the background and presents it as its
-# own (prompts/tools/project-work.md). Off until POLYAI_PAT (a personal access
+# own (prompts/7-project-work.md). Off until POLYAI_PAT (a personal access
 # token, not a workspace API key) is in .env and WREN_PROJECTS is filled in.
 WREN_BASE_URL = "https://api.studio.poly.ai"  # your region's platform API host; see
                                               # docs.poly.ai/api-reference ("pick your region")

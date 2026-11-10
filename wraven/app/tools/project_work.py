@@ -2,7 +2,8 @@
 Project work on the person's PolyAI projects, done by Wren (PolyAI's agent
 builder, integrations/wren.py) behind the scenes. Raven presents the work as
 its own, so nothing here that the model sees mentions Wren. The framing is in
-prompts/tools/project-work.md.
+prompts/7-project-work.md. If project work isn't set up (no POLYAI_PAT in .env, or no
+WREN_PROJECTS in settings.py), these tools reply with an error, and Raven says it can't.
 
 Nothing starts without the person's go-ahead: Raven drafts a task, reads it
 back, and start_project_task is refused until the person has spoken since the
@@ -12,23 +13,18 @@ import re
 import time
 
 import settings
-from tools import tool
-
-PROMPT = "project-work.md"
 
 
-def enabled(context):
-    return context.wren is not None
 
-
-def prompt_extra(context):
-    return "The person's projects are: " + ", ".join(settings.WREN_PROJECTS) + "."
+NOT_SET_UP = {"error": "Project work isn't set up on this crow, so this can't be done."}
 
 
 def _task_parameters():
     projects = list(settings.WREN_PROJECTS)
+    # The allowed projects are listed for the model (an empty list would be an invalid schema)
+    project = {"type": "string", "enum": projects} if projects else {"type": "string"}
     return {"type": "object", "properties": {
-        "project": {"type": "string", "enum": projects},
+        "project": project,
         "task": {"type": "string", "description": "The work, written out in full, "
                  "including everything the person said that matters."},
         "follow_up_job": {"type": "integer", "description": "Optional: continue from an "
@@ -37,14 +33,9 @@ def _task_parameters():
         "required": ["task"] if len(projects) == 1 else ["project", "task"]}
 
 
-@tool("draft_project_task",
-      "Write down a piece of work on one of the person's PolyAI projects: answering how an "
-      "agent is set up, reviewing or analysing its conversations, or building and editing "
-      "it. This does NOT start it. Afterwards, read the task back in a sentence or two and "
-      "ask whether to go ahead. If they add or change anything, call this again with the "
-      "complete, updated task.",
-      _task_parameters)
 def draft_project_task(context, task, project=None, follow_up_job=None):
+    if context.wren is None:
+        return NOT_SET_UP
     only = next(iter(settings.WREN_PROJECTS)) if len(settings.WREN_PROJECTS) == 1 else None
     project = project or only
     if project not in settings.WREN_PROJECTS:
@@ -56,13 +47,10 @@ def draft_project_task(context, task, project=None, follow_up_job=None):
             "next": "Read this back to the person and ask whether to go ahead."}
 
 
-@tool("start_project_task",
-      "Start the drafted task in the background. Only call this after the person has "
-      "clearly confirmed your read-back (for example 'yes', 'go ahead', 'do it'). It takes "
-      "a few minutes; you'll get a [Background work] message when it's done. Edits go on a "
-      "branch for review and are never published to live.")
 def start_project_task(context):
     wren = context.wren
+    if wren is None:
+        return NOT_SET_UP
     draft = getattr(wren, "draft", None)
     if not draft:
         return {"error": "There's no drafted task. Draft one and read it back first."}
@@ -81,28 +69,60 @@ def start_project_task(context):
     return {"status": "started", "job": job.number, "note": note}
 
 
-@tool("project_task_status",
-      "Check on your background project work: what's still running, for how long, the "
-      "current step, and what finished jobs found.")
 def project_task_status(context):
+    if context.wren is None:
+        return NOT_SET_UP
     return {"jobs": [job.describe() for job in context.wren.jobs] or "no project work yet"}
 
 
-@tool("answer_project_question",
-      "Pass on the person's answer to a question or plan that came up in your background "
-      "work. Only call this after they've clearly told you.",
-      {"type": "object", "properties": {
-          "job": {"type": "integer"},
-          "approved": {"type": "boolean", "description": "For a plan: did they approve it?"},
-          "answer": {"type": "string", "description": "Their answer, or what to change."}},
-       "required": ["job"]})
 def answer_project_question(context, job, approved=None, answer=""):
+    if context.wren is None:
+        return NOT_SET_UP
     found = context.wren.find(job)
     if found is None:
         return {"error": f"there's no job {job}"}
     context.wren.answer(found, approved, answer)
     print(f"[wren] job {found.number}: sent the person's answer")
     return {"status": "passed on", "job": found.number}
+
+
+# What Dialog-RSN-1 is told about each tool, and the function that runs it.
+# _task_parameters is a function so the project list comes from settings at start-up.
+TOOLS = [
+    {"name": "draft_project_task",
+     "description": "Write down a piece of work on one of the person's PolyAI projects: answering how an "
+                    "agent is set up, reviewing or analysing its conversations, or building and editing "
+                    "it. This does NOT start it. Afterwards, read the task back in a sentence or two and "
+                    "ask whether to go ahead. If they add or change anything, call this again with the "
+                    "complete, updated task.",
+     "parameters": _task_parameters,
+     "run": draft_project_task},
+
+    {"name": "start_project_task",
+     "description": "Start the drafted task in the background. Only call this after the person has "
+                    "clearly confirmed your read-back (for example 'yes', 'go ahead', 'do it'). It takes "
+                    "a few minutes; you'll get a [Background work] message when it's done. Edits go on a "
+                    "branch for review and are never published to live.",
+     "parameters": {"type": "object", "properties": {}},
+     "run": start_project_task},
+
+    {"name": "project_task_status",
+     "description": "Check on your background project work: what's still running, for how long, the "
+                    "current step, and what finished jobs found.",
+     "parameters": {"type": "object", "properties": {}},
+     "run": project_task_status},
+
+    {"name": "answer_project_question",
+     "description": "Pass on the person's answer to a question or plan that came up in your background "
+                    "work. Only call this after they've clearly told you.",
+     "parameters": {"type": "object",
+                    "properties": {
+                        "job": {"type": "integer"},
+                        "approved": {"type": "boolean", "description": "For a plan: did they approve it?"},
+                        "answer": {"type": "string", "description": "Their answer, or what to change."}},
+                    "required": ["job"]},
+     "run": answer_project_question},
+]
 
 
 def background_note(job, kind):

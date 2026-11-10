@@ -1,7 +1,8 @@
 # Hardware
 
-The 3D-printed parts, servo, stepper, LEDs and speaker are the same as in the
-[original crow build guide](../../animatronicCrow/BUILD.md). What changes:
+The electronics for Raven. Printing the parts is in [../model/README.md](../model/README.md),
+and putting the crow together in [assembly.md](assembly.md). Compared with the original
+Animatronic Crow:
 
 - An **Arduino Nano on a breadboard** replaces the Creature Control PCB.
 - A **small amplifier** replaces the DFPlayer Mini. The laptop plays all the audio,
@@ -95,7 +96,7 @@ separate USB power bank, or add a $10 "ground loop isolator" to the audio cable.
 Open **Tools → Serial Monitor**, set it to **115200 baud** and **Newline**. After a few
 seconds of the neck centering, it prints `READY`. Type `?` to list the commands.
 
-**Beak.** Follow the BUILD.md beak steps, but use this sketch's commands:
+**Beak.** Follow the beak steps in [assembly.md](assembly.md), using this sketch's commands:
 - Where the guide says `b 1000`, type `U1000` before you fit the servo arm.
 - Find your fully open and fully closed values with `U<number>`: the lowest value that
   doesn't pull against the bottom, and the highest that doesn't press the beak shut.

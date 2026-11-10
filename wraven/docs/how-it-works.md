@@ -22,8 +22,8 @@ and `integrations/dialog_rsn1.py` sends it in one `session.update`:
 
 | What | From | Sent as |
 |---|---|---|
-| Instructions | `prompts/*.md` in filename order, then `prompts/tools/*.md` for the tools in use | `instructions` |
-| Tools | every tool in `tools/` that's switched on | `tools` |
+| Instructions | `prompts/*.md` in filename order | `instructions` |
+| Tools | the `TOOLS` list in `tools/__init__.py` (all of them, always) | `tools` |
 | Knowledge | `knowledge/*.md`, one topic per file | `poly_knowledge` (a PolyAI extension) |
 | Audio format | 16-bit, 16 kHz mic audio | `audio.input.format` |
 | Turn-taking | Dialog-RSN-1 decides when you've finished, then replies by itself | `turn_detection: server_vad`, `create_response: true` |
@@ -63,10 +63,14 @@ The reply arrives a few words at a time (`response.output_text.delta`):
 
 ## 4. Tools
 
-When the model wants to act, it sends `response.function_call_arguments.done` with the
-tool's name and arguments. `tools/__init__.py` runs the matching function, and the
-result goes back as a `function_call_output`, followed by `response.create` so the
-model can carry on talking.
+Each tool file in `tools/` ends with a `TOOLS` list: every entry is the definition
+Dialog-RSN-1 receives (name, description, parameters) plus the function that runs it,
+and `TOOLS` in `tools/__init__.py` joins them into one list. When the model wants to act,
+it sends the call's name and arguments (`response.function_call_arguments.done`). Once
+the reply is done, the matching function runs and its result goes back as a
+`function_call_output`, followed by `response.create` so the model can carry on talking.
+Dialog-RSN-1 makes one tool call per reply (there's no parallel tool calling), so "look
+left, then right" arrives as two replies, one call each.
 
 - **Body** (`tools/body.py`): `caw`, `turn_head`, `shake_head` and `set_eyes` queue a move or
   sound with the Performer and reply `{"ok": true}` at once. The head turns while Raven

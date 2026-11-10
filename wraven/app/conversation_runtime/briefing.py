@@ -1,8 +1,8 @@
 """
 What Raven is told at the start of a conversation:
-  - instructions: prompts/*.md in filename order, then the prompts of the tool groups in use
+  - instructions: prompts/*.md, joined in filename order
+  - tools: the TOOLS list in tools/__init__.py
   - knowledge: knowledge/*.md, one topic per file, sent as Dialog-RSN-1's poly_knowledge
-  - tools: everything in tools/ that's switched on
 """
 import re
 
@@ -16,9 +16,9 @@ def read_prompt(path):
     return COMMENT.sub("", path.read_text()).strip()
 
 
-def instructions(tool_groups, context):
+def instructions():
+    """prompts/*.md, joined in filename order."""
     parts = [read_prompt(path) for path in sorted(settings.PROMPTS_DIR.glob("*.md"))]
-    parts += tools.prompts(tool_groups, context)
     return "\n\n".join(part for part in parts if part)
 
 
@@ -39,7 +39,6 @@ def knowledge():
     return topics
 
 
-def build(context):
+def build():
     """Everything for the session: (instructions, tool definitions, knowledge topics)."""
-    active = tools.groups(context)
-    return instructions(active, context), tools.definitions(active), knowledge()
+    return instructions(), tools.definitions(tools.TOOLS), knowledge()

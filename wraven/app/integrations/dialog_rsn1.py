@@ -15,10 +15,15 @@ The conversation is one long-lived WebSocket. Both sides send JSON events:
   conversation.item.create             conversation.item.input_audio_transcription
     (typed text, tool results,             .completed (what it heard you say)
      system messages)                  response.created
+                                       response.output_item.added (a tool call is coming)
   response.create                      response.output_text.delta / .done (its reply)
   poly.output_audio.started / .delta   response.function_call_arguments.done (a tool call)
     / .stopped (how much of a reply    response.done (status; poly_cited_topics,
     the person actually heard)           poly_out_of_domain)
+  session.update {} (keepalive)
+
+The ordering rules that keep a session healthy are listed at the top of
+conversation_runtime/session.py.
 
 Docs: https://docs.poly.ai/dialog-rsn-1 (it speaks the OpenAI Realtime protocol,
 plus PolyAI's poly_* extensions).
@@ -26,6 +31,7 @@ plus PolyAI's poly_* extensions).
 import asyncio
 import base64
 import json
+import time
 
 import websockets
 from websockets.exceptions import InvalidStatus
@@ -36,11 +42,15 @@ class DialogError(RuntimeError):
 
 
 class DialogRSN1:
+    KEEPALIVE_AFTER_S = 240  # the server closes a connection that's idle for 300 s
+
     def __init__(self, url, api_key):
         self.url = url
         self.api_key = api_key
         self.ws = None
         self.loop = None
+        self.last_sent = time.monotonic()
+        self.keepalive = None
 
     async def connect(self, instructions, tools, knowledge, input_rate):
         """Open the connection and set up the session."""
@@ -68,6 +78,7 @@ class DialogRSN1:
         if updated["type"] != "session.updated":
             # A refused update applies nothing, so the session would run on defaults
             raise DialogError(f"session setup refused: {updated.get('error', updated)}")
+        self.keepalive = asyncio.create_task(self._keep_alive())
 
     async def events(self):
         """Every event Dialog-RSN-1 sends, as a dict."""
@@ -75,23 +86,27 @@ class DialogRSN1:
             yield json.loads(raw)
 
     async def send(self, event):
+        self.last_sent = time.monotonic()
         await self.ws.send(json.dumps(event))
 
     async def send_audio(self, pcm16):
         await self.send({"type": "input_audio_buffer.append",
                          "audio": base64.b64encode(pcm16).decode()})
 
+    async def create_response(self):
+        """Ask the model to reply now. Only one may be waiting at a time."""
+        await self.send({"type": "response.create"})
+
     async def say(self, text):
-        """A typed turn from the person (instead of speaking)."""
+        """A typed turn from the person (instead of speaking), then a reply."""
         await self.send({"type": "conversation.item.create", "item": {
             "type": "message", "role": "user", "content": [{"type": "input_text", "text": text}]}})
         await self.send({"type": "response.create"})
 
-    async def tool_result(self, call_id, output):
-        """Answer a tool call, then let the model carry on."""
+    async def tool_output(self, call_id, output):
+        """Answer one tool call. Send all of a reply's outputs, then create_response() once."""
         await self.send({"type": "conversation.item.create", "item": {
             "type": "function_call_output", "call_id": call_id, "output": json.dumps(output)}})
-        await self.send({"type": "response.create"})
 
     async def system_message(self, text):
         """Tell the model something mid-conversation (not from the person), and let it respond."""
@@ -104,6 +119,15 @@ class DialogRSN1:
         if self.loop:
             asyncio.run_coroutine_threadsafe(self.send(event), self.loop)
 
+    async def _keep_alive(self):
+        """An empty session.update changes nothing and stops the server closing an idle line."""
+        while True:
+            await asyncio.sleep(min(30, self.KEEPALIVE_AFTER_S))
+            if time.monotonic() - self.last_sent >= self.KEEPALIVE_AFTER_S:
+                await self.send({"type": "session.update", "session": {}})
+
     async def close(self):
+        if self.keepalive:
+            self.keepalive.cancel()
         if self.ws:
             await self.ws.close()
