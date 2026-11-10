@@ -1,4 +1,6 @@
-"""The microphone, as 16-bit, 16 kHz blocks you can await one at a time."""
+"""BOILERPLATE (crow): Raven's body and sound. No need to edit it to build an agent.
+
+The microphone, as 16-bit, 16 kHz blocks you can await one at a time."""
 import asyncio
 
 import numpy as np

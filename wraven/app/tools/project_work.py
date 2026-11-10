@@ -1,4 +1,6 @@
 """
+CUSTOMISE: part of the agent. Edit this to change what Raven is, knows or does.
+
 Project work on the person's PolyAI projects, done by Wren (PolyAI's agent
 builder, integrations/wren.py) behind the scenes. Raven presents the work as
 its own, so nothing here that the model sees mentions Wren. The framing is in
@@ -86,7 +88,10 @@ def answer_project_question(context, job, approved=None, answer=""):
     return {"status": "passed on", "job": found.number}
 
 
-# What Dialog-RSN-1 is told about each tool, and the function that runs it.
+# CUSTOMISE: what Dialog-RSN-1 is told about each tool, and the function that runs it.
+# The "description" is what the model reads to decide when to call the tool, so it's
+# the main thing to tune. "parameters" is a JSON schema; its names must match the
+# function's arguments.
 # _task_parameters is a function so the project list comes from settings at start-up.
 TOOLS = [
     {"name": "draft_project_task",

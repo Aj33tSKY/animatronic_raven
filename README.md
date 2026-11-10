@@ -33,7 +33,7 @@ wraven/
     ├── sounds/              ← the crow calls Raven can make
     │
     ├── integrations/        ← outside services: dialog_rsn1.py, wren.py, elevenlabs.py
-    ├── audio/               ← sound on this laptop: speaker, lip sync, microphone, echo
+    ├── audio/               ← sound on this laptop: voice (with fallbacks), speaker, lip sync, mic, echo
     ├── hardware/            ← the physical crow: nano.py (USB), body.py (behaviour)
     ├── conversation_runtime/  ← ties it together: briefing, performer, session
     │
@@ -65,6 +65,28 @@ Other commands: `python start.py --test-sound` (lip sync and crow calls, no AI),
 
 Building the crow itself: print the parts ([wraven/model/](wraven/model/README.md)), assemble
 them ([assembly.md](wraven/docs/assembly.md)), and wire it up ([hardware.md](wraven/docs/hardware.md)).
+
+## What's the agent, and what's boilerplate
+
+Every file starts with a label: **CUSTOMISE** (part of the agent) or **BOILERPLATE**
+(the same for any agent; no need to edit it to build one). To make your own agent, you
+only touch the CUSTOMISE files:
+
+| | Where | What it is |
+|---|---|---|
+| ✏️ **CUSTOMISE** | `app/prompts/*.md` | Who the agent is and how it behaves (the instructions) |
+| ✏️ **CUSTOMISE** | `app/knowledge/*.md` | What it knows (one topic per file) |
+| ✏️ **CUSTOMISE** | `app/tools/*.py` | What it can do: each tool's description, parameters and function |
+| ✏️ **CUSTOMISE** | `app/tools/__init__.py` | Only the `TOOLS` line: which tools it has |
+| ✏️ **CUSTOMISE** | `app/settings.py` | Sections marked `[CUSTOMISE]`: voice, devices, project-work account |
+| ✏️ **CUSTOMISE** | `app/.env` | Your API keys |
+| ⚙️ BOILERPLATE | `app/conversation_runtime/`, `app/integrations/`, `app/start.py` | The Dialog-RSN-1 connection, events, tool calls, turn-taking |
+| 🐦 BOILERPLATE (crow) | `app/audio/`, `app/hardware/`, `firmware/`, `model/` | The crow's voice, speaker, mic, echo cancelling, beak, neck, eyes |
+| 🧪 BOILERPLATE (tests) | `app/tests/` | Checks the plumbing still works |
+| — not needed | `app/alt/` | The earlier Claude + Whisper version |
+
+**A live build in four steps:** write `prompts/`, add facts to `knowledge/`, copy
+`tools/_example.py` for a new tool and add it to `TOOLS`, then run `python start.py`.
 
 ## Making changes
 

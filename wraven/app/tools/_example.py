@@ -1,4 +1,6 @@
 """
+CUSTOMISE: the template to copy for a new tool.
+
 A template for new tools. To use it:
 
     1. cp tools/_example.py tools/dice.py      and edit the copy
@@ -19,6 +21,7 @@ def roll_dice(context, sides=6):
     return {"rolled": random.randint(1, max(2, sides))}
 
 
+# CUSTOMISE: the definition Dialog-RSN-1 sees (name, description, parameters) + the function
 TOOLS = [
     {"name": "roll_dice",
      "description": "Roll dice for a game, then say the result out loud.",

@@ -1,3 +1,4 @@
+// CUSTOMISE only to calibrate your crow (beak range, neck speed). Not part of the agent.
 #ifndef SETTINGS_H
 #define SETTINGS_H
 // ****************************************************************************

@@ -1,4 +1,6 @@
 """
+BOILERPLATE (crow): Raven's body and sound. No need to edit it to build an agent.
+
 The Arduino Nano inside the crow, over USB serial (firmware/wraven-nano).
 
 Sends one-line commands: B<0-100> beak, S<0|1> + N<pos> neck, E<0-4> eyes.

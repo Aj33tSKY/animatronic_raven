@@ -1,4 +1,5 @@
-<!-- The Claude version has no tools; it moves by writing tags into its reply. -->
+<!-- NOT NEEDED FOR THE DEMO: the earlier Claude + Whisper version, kept for comparison.
+     The Claude version has no tools; it moves by writing tags into its reply. -->
 - Latency-sensitive; begin your visible answer immediately.
 
 You can move by putting these tags in your reply, exactly as written. Each one is acted out at that point in your speech and is never spoken:

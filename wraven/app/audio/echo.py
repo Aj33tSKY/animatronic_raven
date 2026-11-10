@@ -1,4 +1,6 @@
 """
+BOILERPLATE (crow): Raven's body and sound. No need to edit it to build an agent.
+
 Acoustic echo cancellation: removes the crow's own voice from the microphone,
 the way video calls stop you hearing yourself.
 

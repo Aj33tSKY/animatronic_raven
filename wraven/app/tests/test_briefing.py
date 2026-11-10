@@ -1,4 +1,6 @@
-"""What Raven is told: prompts in order, editor notes removed, knowledge topics, tool groups."""
+"""BOILERPLATE (tests): checks the plumbing still works. Run with: python -m pytest
+
+What Raven is told: prompts in order, editor notes removed, knowledge topics, tool groups."""
 import settings
 import tools
 from conversation_runtime import briefing

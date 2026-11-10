@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """
+BOILERPLATE: Dialog-RSN-1 plumbing, the same for any agent. No need to edit it to build one.
+
 Wren, PolyAI's agent builder, as a background helper for Raven.
 
 Raven drafts a request, reads it back, and only sends it once the person

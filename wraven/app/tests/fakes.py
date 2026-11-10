@@ -1,4 +1,6 @@
-"""Stand-ins for the sound card, the Arduino, Dialog-RSN-1 and Wren."""
+"""BOILERPLATE (tests): checks the plumbing still works. Run with: python -m pytest
+
+Stand-ins for the sound card, the Arduino, Dialog-RSN-1 and Wren."""
 import asyncio
 import contextlib
 import json

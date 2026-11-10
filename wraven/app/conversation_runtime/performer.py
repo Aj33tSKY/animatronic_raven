@@ -1,4 +1,6 @@
 """
+BOILERPLATE (crow): Raven's body and sound. No need to edit it to build an agent.
+
 The Performer speaks and moves, in order, on its own thread, so the
 conversation never waits on the crow.
 
@@ -22,7 +24,7 @@ import soundfile as sf
 import settings
 from audio.lipsync import play
 from audio.speaker import SPEAKER_RATE, seconds_since_sound, speaker
-from integrations.elevenlabs import synthesize
+from audio.voice import prepare, synthesize
 
 
 class Performer:
@@ -40,6 +42,7 @@ class Performer:
         self.current = None             # (reply id, sentence) playing right now
         self.user_turns = 0             # how many times they've spoken (for read-back confirmation)
         self.progress = {}              # reply id -> what's been played and reported
+        self.voice.submit(prepare)      # load the backup voice now, in case it's needed
         threading.Thread(target=self._work, daemon=True).start()
         threading.Thread(target=self._report_playback, daemon=True).start()
 
@@ -50,6 +53,8 @@ class Performer:
             self.busy.set()
             if kind == "say":
                 value = (value, self.voice.submit(synthesize, value, SPEAKER_RATE))
+                if reply_id is not None:  # this reply has words to speak, so it must be reported
+                    self._progress(reply_id)["has_speech"] = True
             self.jobs.put((kind, value, reply_id))
 
     def mic_should_listen(self):
@@ -79,7 +84,12 @@ class Performer:
                     self.cancelled.add(playing_id)
                 if clip:
                     dropped[playing_id] = dropped.get(playing_id, 0) + clip.length_ms - clip.played_ms
-            for reply_id in set(dropped) | {playing_id}:
+            # Report every reply that had words to say, even if none of it has played yet
+            # (cut off in its first moments, or while its voice was still being made):
+            # otherwise the server assumes the person heard all of it.
+            unfinished = {reply_id for reply_id, progress in self.progress.items()
+                          if progress["has_speech"] and not progress["stopped"]}
+            for reply_id in set(dropped) | {playing_id} | unfinished:
                 self._report_stopped(reply_id, dropped.get(reply_id, 0))
         speaker().stop()  # play() returns straight away
         if dropped or playing_id is not None:
@@ -134,7 +144,8 @@ class Performer:
 
     def _progress(self, reply_id):  # call with the lock held
         return self.progress.setdefault(reply_id, {"played_ms": 0, "spoken": "", "started": False,
-                                                   "stopped": False, "sent_ms": 0, "sent_len": 0})
+                                                   "stopped": False, "sent_ms": 0, "sent_len": 0,
+                                                   "has_speech": False})
 
     def _heard(self, reply_id):  # call with the lock held
         """How much of a reply has played so far, and roughly which words."""
@@ -143,9 +154,12 @@ class Performer:
         clip = speaker().clip
         if self.current and self.current[0] == reply_id and clip and clip.length_ms:
             text = self.current[1]
-            audio_ms += clip.played_ms
+            # Audio handed to the sound card is still in its buffer for a moment before it
+            # comes out of the speaker, so don't count that part as heard yet
+            out_ms = max(0, clip.played_ms - int(speaker().latency * 1000))
+            audio_ms += out_ms
             # Assume the words of the current sentence go by at an even pace
-            heard_chars = len(text) * clip.played_ms // clip.length_ms
+            heard_chars = len(text) * out_ms // clip.length_ms
             if heard_chars >= len(text):
                 spoken += text
             else:  # only count whole words
@@ -185,8 +199,11 @@ class Performer:
         if reply_id is None:
             return
         progress = self._progress(reply_id)
-        if progress["started"] and not progress["stopped"]:
+        if (progress["started"] or progress["has_speech"]) and not progress["stopped"]:
             audio_ms, spoken = self._heard(reply_id)
+            if not progress["started"]:  # cut off before the first 250 ms report
+                progress["started"] = True
+                self.report({"type": "poly.output_audio.started", "response_id": reply_id})
             self.report({"type": "poly.output_audio.stopped", "response_id": reply_id,
                          "audio_ms": audio_ms, "dropped_ms": dropped_ms,
                          "spoken_text": spoken.strip()})

@@ -1,4 +1,6 @@
 """
+BOILERPLATE (crow): Raven's body and sound. No need to edit it to build an agent.
+
 The crow's speaker: one continuous output stream that plays one sound at a time
 and can be stopped part-way (when someone interrupts). Everything that comes out,
 silence included, is also passed to `on_output`; that's the echo canceller's

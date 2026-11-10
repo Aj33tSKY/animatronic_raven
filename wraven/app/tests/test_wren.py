@@ -1,4 +1,6 @@
-"""The project-work client, against a fake Wren speaking Wren's real event format."""
+"""BOILERPLATE (tests): checks the plumbing still works. Run with: python -m pytest
+
+The project-work client, against a fake Wren speaking Wren's real event format."""
 import asyncio
 import json
 

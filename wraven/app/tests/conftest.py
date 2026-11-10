@@ -1,4 +1,6 @@
 """
+BOILERPLATE (tests): checks the plumbing still works. Run with: python -m pytest
+
 Shared test setup. Run everything from the app folder with:   python -m pytest
 
 Nothing here makes a sound, touches the Arduino, or calls PolyAI, Wren or
@@ -39,6 +41,7 @@ def fake_voice(monkeypatch):
         said.append(text)
         return np.full(int(rate * seconds), 0.05, np.float32), rate
     monkeypatch.setattr(performer, "synthesize", synthesize)
+    monkeypatch.setattr(performer, "prepare", lambda: None)
     return said
 
 
