@@ -66,6 +66,7 @@ unsigned long lastEyeUpdate = 0;
 unsigned long nextBlinkTime = 0;
 unsigned long blinkEndTime = 0;
 unsigned long nextFlickerTime = 0;
+bool secondBlinkDue = false;
 
 // Serial input
 char commandBuffer[24];
@@ -247,9 +248,18 @@ void moveNeck(long position) {
 
 void releaseNeckWhenIdle() {
 #if NECK_RELEASE_WHEN_IDLE
-  if (neckPowered && stepper.distanceToGo() == 0) {
+  static unsigned long stoppedAt = 0;
+  if (!neckPowered) return;
+  if (stepper.distanceToGo() != 0) {
+    stoppedAt = 0;
+    return;
+  }
+  // Hold position briefly so the head settles before the coils let go
+  if (stoppedAt == 0) stoppedAt = millis();
+  if (millis() - stoppedAt >= NECK_RELEASE_DELAY_MS) {
     stepper.disableOutputs();
     neckPowered = false;
+    stoppedAt = 0;
   }
 #endif
 }
@@ -293,7 +303,14 @@ void updateEyes(unsigned long now) {
     case EYES_AWAKE:  // steady with random blinks
       if (now >= nextBlinkTime) {
         blinkEndTime = now + BLINK_DURATION_MS;
-        nextBlinkTime = now + random(BLINK_MIN_INTERVAL_MS, BLINK_MAX_INTERVAL_MS);
+        // Now and then follow a blink straight away with a second one
+        if (!secondBlinkDue && random(100) < DOUBLE_BLINK_PERCENT) {
+          nextBlinkTime = blinkEndTime + 120;
+          secondBlinkDue = true;
+        } else {
+          nextBlinkTime = now + random(BLINK_MIN_INTERVAL_MS, BLINK_MAX_INTERVAL_MS);
+          secondBlinkDue = false;
+        }
       }
       level = (now < blinkEndTime) ? 0 : EYE_BRIGHTNESS;
       break;

@@ -174,8 +174,50 @@ python crow_poly.py --no-crow                       # 2. talk, without the Ardui
 python crow_poly.py                                 # 3. the real thing
 ```
 
-The mic is muted while the crow talks (plus `ECHO_TAIL_S`), so it doesn't hear its own
-voice. You can't interrupt it mid-sentence. If your workspace is regional and the
+**Talking over Raven.** By default (`ECHO_MODE = "cancel"` in `config.py`) the program
+uses echo cancellation, like a video call: everything the crow plays is subtracted from
+the mic, so Dialog-RSN-1 hears you but not Raven. You can keep talking while Raven
+replies, or interrupt it mid-sentence; it stops at once and listens. It also reports
+back to PolyAI how much of each reply you actually heard. In this mode the speaker
+plays at 16 kHz, phone-call quality, so the echo canceller gets an exact copy.
+
+If Raven keeps cutting itself off, or answers its own voice, keep the speaker volume
+moderate and the laptop's mic away from the crow. Or set `ECHO_MODE = "mute"`: the mic
+is then muted while the crow talks (plus `ECHO_TAIL_S`), which is rock solid, but you
+can't interrupt. Echo cancellation needs the `livekit` package; without it the program
+falls back to muting by itself.
+
+### Option: Wren, PolyAI's agent builder
+
+With Wren set up, Raven becomes a voice interface for
+[Wren](https://docs.poly.ai/agent-builder/introduction): ask it to look into a project's
+calls, explain how an agent works, or build and edit flows, topics, functions and tests.
+Wren stays hidden: Raven presents the work as its own ("I'll change the greeting…",
+"I've added two topics", "I couldn't get into that project"), and if asked about Wren,
+calls it its best friend and practically its twin.
+
+Before starting anything, Raven reads the task back and asks "Shall I go ahead?"; add or
+change things and it reads back the new version. Nothing starts until you clearly say
+yes (this is enforced in the code, not just asked of the model). The work takes a few
+minutes, so Raven keeps talking with you and reports back at a natural pause. Ask "how's
+it going?" at any time. Decisions that come up mid-task are put to you. Edits always go
+onto a branch for review; nothing is published to live.
+
+To set it up:
+1. In Dialog Studio, create a **personal access token** (Account > Personal access
+   tokens). A workspace API key won't work. Put it in `.env` as `POLYAI_PAT`.
+2. In `config.py`, fill in `WREN_ACCOUNT_ID` and `WREN_PROJECTS` (a name you'd say
+   for each project, mapped to its project ID), and set `WREN_BASE_URL` to your
+   region's host if it isn't the default.
+3. Check it works without Raven, which also shows Wren's raw events:
+   ```bash
+   python wren.py --project pizza "What topics does this project have?"
+   ```
+4. Run `python crow_poly.py` and ask Raven to get Wren to do something.
+
+Every raw Wren event is saved in `laptop/logs/wren-<date>.jsonl` (git ignores it).
+
+If your workspace is regional and the
 connection is refused, set `POLY_URL` in `config.py` (or the `DIALOG_REALTIME_URL`
 environment variable) to its host. The character is `CHARACTER` in `config.py`,
 shared by both programs.
@@ -192,6 +234,10 @@ Everything is in `laptop/config.py`:
 | Beak opens too wide | Lower `BEAK_MAX_OPEN` |
 | Beak motion too jerky or too lazy | `BEAK_SMOOTHING` in `settings.h` (re-upload) |
 | `[look left]` turns right | `NECK_FLIP = True` |
+| Head too restless, or not lively enough | `NECK_LIFE`: `every` is how often it moves in each state, `reach` how far. `NECK_LIVELY = False` turns it off |
+| PolyAI hears the neck moving as you talking | Lower the `rest` row's `reach` and make its `every` slower |
+| Want the old pulse/flicker/steady eyes while listening/thinking/talking | `EYES_SHOW_STATE = True` |
+| Blinks too often or too rarely | `BLINK_MIN_INTERVAL_MS` / `BLINK_MAX_INTERVAL_MS` in `settings.h` (re-upload) |
 | It cuts you off mid-sentence | Raise `SILENCE_TO_STOP_S` |
 | It starts listening to background noise | Raise `SPEECH_THRESHOLD_X` |
 | Mishears you | `WHISPER_MODEL = "small.en"` (slower, more accurate) |

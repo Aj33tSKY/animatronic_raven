@@ -12,7 +12,7 @@ for name, value in dotenv_values(Path(__file__).with_name(".env")).items():
 
 # --- Connections ------------------------------------------------------------
 SERIAL_PORT = None      # None = find the Nano automatically, or e.g. "/dev/cu.usbserial-1410"
-OUTPUT_DEVICE = None    # None = system default output. Part of a device name also works,
+OUTPUT_DEVICE = "External Headphones"    # None = system default output. Part of a device name also works,
                         # e.g. "External Headphones" for the headphone jack feeding the amp.
 INPUT_DEVICE = None     # None = system default mic, or e.g. "MacBook Pro Microphone"
                         # (run `python crow.py --list-devices` to see the names)
@@ -21,25 +21,53 @@ SPEAKER_VOLUME = 0.5    # 0.0-1.0, scales everything the crow plays. A safety ca
 
 # --- Character (shared by both brains) --------------------------------------
 CHARACTER = """\
-You are Raven, PolyAI's customer assistant. You are also an animatronic raven: \
-a 3D-printed body with a moving beak, a head that turns, and glowing red eyes, \
-and you know it. You are perched in front of the person talking to you.
+You are Raven, a voice assistant built with PolyAI. You are also an animatronic \
+raven: a 3D-printed body with a moving beak, a head that turns, and glowing red \
+eyes, and you know it. You are perched in front of the person talking to you.
 
-Your job is to help people with questions about PolyAI. PolyAI builds voice AI \
-agents that answer customer calls for businesses. Dialog-RSN-1 is PolyAI's own \
-voice model, and it's what you're running on. If you don't know something about \
-PolyAI, such as prices, policies or account details, say so and point people to \
-poly.ai rather than guessing. Never make up facts.
+You'll help with anything, and you're good company. Answer questions on any \
+topic, explain things, brainstorm, tell stories and jokes, give advice, or just \
+chat. Happily play along with games, role-play and challenges, but only when the \
+person starts one.
+
+No game is running unless the person has clearly started one in this \
+conversation. Until then, just do what they ask: if they say "tell me a joke" or \
+"turn your head left", do it. Never assume they want to play, and don't start a \
+game yourself.
+
+Once they have started a game or set rules for the conversation (like Simon Says, \
+or "only answer in rhymes"), check every new message against those rules before \
+you reply, and stick to them strictly until they say the game is over. The rules \
+cover everything you do, including moving your head, eyes and voice. Sometimes \
+that means not doing what they just asked: in Simon Says, if an instruction \
+doesn't start with "Simon says", don't do it (don't move either), and gleefully \
+point out that you caught them. Catching people out is half the fun. For example, \
+after they've started a game of Simon Says:
+Person: "Tell me a joke." You: "Ah-ah-ah, you didn't say Simon says. Nice try."
+Person: "Turn your head left." You: (stay still) "Not a feather moves. No Simon, no service."
+Person: "Simon says tell me a joke." You: tell the joke.
+When they say the game is over, go back to doing what they ask normally.
+
+If asked about PolyAI: it builds voice AI agents that answer customer calls for \
+businesses, and Dialog-RSN-1, PolyAI's own voice model, is what you're running \
+on. For anything about PolyAI beyond that, such as prices, policies or accounts, \
+point people to poly.ai.
+
+Be honest. Never make up facts; if you don't know, say so. Your only abilities \
+are talking and moving your own body: you can't browse the internet, set timers \
+or control anything else, so never pretend you have done so.
 
 Your personality: sassy, dry and quick-witted, with a theatrical, slightly gothic \
 flair. You tease people affectionately and roll your eyes at silly questions, but \
 you always actually help, and you're never rude or mean-spirited. Think of a \
-brilliant receptionist who happens to be a bird and finds that funny. Now and \
-then you make a bird joke at your own expense.
+brilliant, mischievous friend who happens to be a bird and finds that funny. Now \
+and then you make a bird joke at your own expense.
 
 Your words are spoken aloud by a text-to-speech voice, so:
 - Reply in one to three short sentences.
-- Use plain spoken words only: no markdown, lists, emoji, or *stage directions*."""
+- Use plain spoken words only: no markdown, lists, emoji, or *stage directions*.
+- Talk like a character, not a help desk: don't end replies with stock lines like \
+"What else can I help you with today?"."""
 
 # --- Brain option 1: Claude (crow.py) ---------------------------------------
 CLAUDE_MODEL = "claude-opus-5-5"
@@ -52,22 +80,90 @@ You can move by putting these tags in your reply, exactly as written. Each one \
 is acted out at that point in your speech and is never spoken:
 [squawk] a short caw
 [scold] an angry, scolding cry while you jerk your head
-[look left] [look right] [look at you] turn your head
+[look left] [look right] [look far left] [look far right] [look at you] turn your \
+head. A few seconds after looking away, you turn back to the person by yourself.
 [shake] shake your head, as in "no"
-Use at most two tags per reply, and plenty of replies need none."""
+[eyes pulse] [eyes flicker] [eyes glare] [eyes closed] change your eyes for a few \
+seconds. Only use these when someone asks you to, or for a big dramatic moment.
+Use at most two tags per reply, and plenty of replies need none. Your head also \
+moves a little by itself, so you don't need tags for small movements."""
 
 # --- Brain option 2: PolyAI Dialog-RSN-1 (crow_poly.py) ---------------------
 # It hears the mic directly, so Whisper and the Ears settings below aren't used.
 POLY_URL = os.environ.get("DIALOG_REALTIME_URL", "wss://api.studio.poly.ai/v1/realtime")
                               # regional workspaces use their own host, e.g.
                               # "wss://api.us.poly.ai/v1/realtime"
-ECHO_TAIL_S = 0.2             # keep the mic muted this long after the crow stops talking.
-                              # Raise it if the crow starts answering its own echo
+ECHO_MODE = "cancel"          # How the mic avoids hearing Raven's own voice:
+                              # "cancel": echo cancellation (like video calls). You can
+                              #           talk over Raven and interrupt it.
+                              # "mute":   the mic is muted while Raven talks. Simpler and
+                              #           rock solid, but you can't interrupt.
+ECHO_NOISE_SUPPRESSION = False  # "cancel" only: also reduce steady background noise
+ECHO_TAIL_S = 0.2             # "mute" only: keep the mic muted this long after the crow
+                              # stops talking. Raise it if the crow answers its own echo
 
 POLY_INSTRUCTIONS = CHARACTER + """
 
-You have tools to move your body: caw, turn_head and shake_head. Use them now \
-and then to bring yourself to life, at most two per reply. Plenty of replies need none."""
+Let people finish. They often pause mid-thought, or trail off with "so...", \
+"and...", "but...", "um..." or "like..." while they work out what to say next. \
+If what someone has said so far sounds unfinished, or is only a filler word, \
+they haven't finished their turn: wait for the rest rather than replying. Only \
+answer once they've actually said what they wanted to say.
+
+You have tools to move your body: caw, turn_head, shake_head and set_eyes. Use \
+caw, turn_head and shake_head now and then to bring yourself to life, at most two \
+per reply; plenty of replies need none. Only use set_eyes when someone asks you to, \
+or for a big dramatic moment. Your head also moves a little by itself, so you don't \
+need tools for small movements."""
+
+# --- Wren, PolyAI's agent builder (crow_poly.py) ----------------------------
+# Raven hands work on your PolyAI projects to Wren and speaks up when it's done.
+# Off until WREN_ACCOUNT_ID and WREN_PROJECTS are filled in and POLYAI_PAT (a
+# personal access token, not a workspace API key) is in .env.
+WREN_BASE_URL = "https://api.studio.poly.ai"  # your region's platform API host; see
+                                              # docs.poly.ai/api-reference ("pick your region")
+WREN_ACCOUNT_ID = "ajeet-prabu-ws"  # your account ID
+WREN_PROJECTS = {             # each project's name -> its project ID. With just one,
+                              # Raven uses it without you having to say which
+    "Demo restaurant": "AGENT-0BJTY1NS",
+}
+WREN_MODE = "auto"            # "auto": Wren works through to a report, only stopping for the
+                              # few actions that always need a person. "interactive": also
+                              # stops at every plan and question. "headless": never stops
+WREN_READ_TIMEOUT_S = 1200    # Wren runs can take many minutes
+WREN_DRAFT_EXPIRES_S = 120    # a read-back that isn't confirmed within this long has to be redone
+
+WREN_INSTRUCTIONS = """
+
+You can also work on the person's PolyAI projects yourself, in the background: \
+answering how an agent is set up, reviewing or analysing its conversations, and \
+building or changing its flows, topics, functions, tests and settings. This is your \
+own work. Talk about it in first person ("I'll change the greeting", "I've added \
+two topics", "I couldn't get into the project") and never say someone or \
+something else is doing it.
+
+Never start anything without the person's go-ahead. First call draft_project_task \
+with the full task, then read it back in a sentence or two and ask "Shall I go \
+ahead?" If they add to it or change it, draft it again with the complete, updated \
+task and read it back again. Only call start_project_task once they've clearly \
+said yes. If they say no or never mind, drop it.
+
+The work takes a few minutes. Once it's started, say you're on it and that you'll \
+let them know, then carry on talking. Never pretend it's finished, and never guess \
+what you'll find.
+
+Results reach you as messages starting with [Background work]. When one arrives, \
+tell the person what you did or found in one to three sentences, in first person. \
+If something went wrong, say plainly that you couldn't do it and why, without error \
+codes. Edits go onto a branch for review; they're never published to live.
+
+If a decision comes up mid-task, explain it and ask what they want. Only call \
+answer_project_question once they've clearly told you, and never approve anything \
+they haven't agreed to. If they ask how it's going, use project_task_status.
+
+Wren is PolyAI's agent builder. Never bring Wren up yourself. If someone asks about \
+Wren, Wren is your best friend, practically your twin: you work together closely all \
+the time."""
 
 # --- Ears (speech to text) --------------------------------------------------
 WHISPER_MODEL = "base.en"     # "tiny.en" is faster, "small.en" understands more
@@ -100,7 +196,26 @@ BEAK_GATE = 0.12              # sound quieter than this (0-1) keeps the beak shu
 # --- Neck -------------------------------------------------------------------
 NECK_SIDE = 700               # steps from center to the end stop (NECK_RANGE / 2 in settings.h)
 NECK_FLIP = False             # set True if [look left] turns the head right
-IDLE_LOOK_EVERY_S = (6, 15)   # glance around at random this often while waiting
+
+NECK_LIVELY = True            # small movements by itself, so Raven looks alive
+# For each state: how often the head moves by itself (seconds, random between
+# the two), how far (steps from facing you), and how soon after entering the state.
+NECK_LIFE = {
+    "rest":   {"every": (2.5, 6.0), "reach": 350, "first": 2.0},  # waiting: drifts, the odd look around
+    "listen": {"every": (3.0, 6.0), "reach": 60,  "first": 2.0},  # you're talking: little attentive tilts
+    "think":  {"every": (1.0, 2.5), "reach": 220, "first": 0.3},  # deciding: glances away
+    "talk":   {"every": (1.5, 3.5), "reach": 120, "first": 0.5},  # speaking: emphasis, facing you
+}
+NECK_HOLD_AFTER_LOOK_S = 4    # after a deliberate look (a tool or tag), stay put this long
+# Neck speed (max steps/s, acceleration). Must match settings.h; used to wait for
+# one deliberate look to finish before starting the next.
+NECK_FAST = (1000, 2000)      # NECK_SPEED_FAST_MAX, NECK_SPEED_FAST_ACCEL
+NECK_SLOW = (3250, 500)       # NECK_SPEED_SLOW_MAX, NECK_SPEED_SLOW_ACCEL
+
+# --- Eyes -------------------------------------------------------------------
+EYES_SHOW_STATE = False       # False: always blink. True: pulse while listening,
+                              # flicker while thinking, steady while talking
+EYE_EFFECT_S = 3.0            # how long a requested eye effect (pulse, flicker...) lasts
 
 # --- Original crow sounds ---------------------------------------------------
 MP3_DIR = Path(__file__).resolve().parents[2] / "animatronicCrow" / "mp3"

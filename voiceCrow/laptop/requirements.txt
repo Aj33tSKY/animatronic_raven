@@ -1,6 +1,7 @@
 anthropic
 faster-whisper
 httpx
+livekit
 numpy
 pyserial
 python-dotenv
