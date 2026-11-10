@@ -1,0 +1,4 @@
+# Extra libraries for the Claude + Whisper version (alt/claude_whisper.py),
+# on top of ../requirements.txt
+anthropic
+faster-whisper

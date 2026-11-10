@@ -1,0 +1,9 @@
+httpx
+livekit
+numpy
+pyserial
+python-dotenv
+sounddevice
+soundfile
+websockets>=14
+pytest
