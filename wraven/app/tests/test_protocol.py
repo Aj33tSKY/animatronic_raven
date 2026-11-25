@@ -1,8 +1,9 @@
 """BOILERPLATE (tests): checks the plumbing still works. Run with: python -m pytest
 
 The protocol rules from PolyAI's own client, which keep a session from failing with
-generation_failed: tool calls answered only after a completed reply, one response.create,
-nothing slipped in while a tool call is in flight or the server is about to reply."""
+generation_failed: tool calls answered once their reply is done (completed, or cancelled by the
+person speaking; a failed reply's calls are dropped), one response.create, slow tools not blocking
+the conversation, nothing slipped in while a tool call is in flight or the server is about to reply."""
 import asyncio
 import json
 import time
@@ -68,7 +69,37 @@ def test_two_tool_calls_are_answered_together_after_the_reply_with_one_create(po
     assert len(follow_ups) == 1 and len([i for i in creates if i >= marks["done_at"]]) == 1  # one create
 
 
-def test_a_cancelled_replys_tool_call_is_never_answered(poly, silent_audio, fake_voice, nano, capsys):
+def one_call_then_done(status, reply_id="r1", call_id="c0", name="shake_head", arguments="{}"):
+    async def script(ws, received):
+        await asyncio.sleep(0.1)
+        await send(ws, type="response.created", response={"id": reply_id})
+        await send(ws, type="response.output_item.added", response_id=reply_id,
+                   item={"type": "function_call", "id": "item0", "call_id": call_id, "name": name})
+        await send(ws, type="response.function_call_arguments.done", response_id=reply_id, item_id="item0",
+                   call_id=call_id, name=name, arguments=arguments)
+        await send(ws, type="response.done", response={"id": reply_id, "status": status})
+        await asyncio.sleep(0.8)
+        await ws.close()
+    return script
+
+
+def test_a_cancelled_replys_tool_call_is_still_answered(poly, silent_audio, fake_voice, nano):
+    received = converse(nano, one_call_then_done("cancelled"), port=8794)
+    outputs = [e for e in received if e.get("item", {}).get("type") == "function_call_output"]
+    assert [e["item"]["call_id"] for e in outputs] == ["c0"]    # the call stays open, so its result is owed
+    assert [e["type"] for e in received].count("response.create") == 2   # the typed turn's, and one follow-up
+
+
+def test_a_failed_replys_tool_call_is_dropped(poly, silent_audio, fake_voice, nano, capsys):
+    received = converse(nano, one_call_then_done("failed"), port=8795)
+    assert not [e for e in received if e.get("item", {}).get("type") == "function_call_output"]
+    assert [e["type"] for e in received].count("response.create") == 1   # only the typed turn's own
+    assert "dropped shake_head" in capsys.readouterr().out
+
+
+def test_a_cancelled_replys_result_waits_until_the_person_has_finished_talking(poly, silent_audio, fake_voice, nano):
+    marks = {}
+
     async def script(ws, received):
         await asyncio.sleep(0.1)
         await send(ws, type="response.created", response={"id": "r1"})
@@ -76,13 +107,18 @@ def test_a_cancelled_replys_tool_call_is_never_answered(poly, silent_audio, fake
                    item={"type": "function_call", "id": "item0", "call_id": "c0", "name": "shake_head"})
         await send(ws, type="response.function_call_arguments.done", response_id="r1", item_id="item0",
                    call_id="c0", name="shake_head", arguments="{}")
+        await send(ws, type="input_audio_buffer.speech_started")    # the person cuts in...
         await send(ws, type="response.done", response={"id": "r1", "status": "cancelled"})
         await asyncio.sleep(0.5)
+        marks["answered_while_talking"] = any(e.get("item", {}).get("type") == "function_call_output"
+                                              for e in received)
+        await send(ws, type="input_audio_buffer.speech_stopped")    # ...and finishes
+        await asyncio.sleep(2.0)
         await ws.close()
-    received = converse(nano, script, port=8794)
-    assert not [e for e in received if e.get("item", {}).get("type") == "function_call_output"]
-    assert [e["type"] for e in received].count("response.create") == 1   # only the typed turn's own
-    assert "dropped shake_head" in capsys.readouterr().out
+    received = converse(nano, script, port=8796)
+    outputs = [e for e in received if e.get("item", {}).get("type") == "function_call_output"]
+    assert not marks["answered_while_talking"] and len(outputs) == 1
+    assert [e["type"] for e in received].count("response.create") == 2
 
 
 def test_news_waits_until_the_conversation_is_clear():

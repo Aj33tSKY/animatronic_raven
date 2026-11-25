@@ -15,14 +15,18 @@ to Raven at the next quiet moment.
 
 Protocol rules this follows (from PolyAI's own client; breaking one fails every
 later response with `generation_failed`):
-  1. Tool calls are answered only once their reply is done, and only if it
-     completed. A cancelled or failed reply's calls are dropped, never answered.
+  1. Tool calls are answered once their reply is done: completed, or cancelled
+     by the person speaking (the call stays open in the conversation, so its
+     result is still owed). A failed reply's calls are dropped.
   2. All of a reply's tool results go back together, then one response.create.
      Only one response.create is ever waiting at a time.
-  3. While a tool call is in flight, nothing else goes into the conversation.
+  3. The results go in once the person and the model are quiet (a cancelled
+     reply's results wait for the person to finish). While a call is open, our
+     own messages wait. Tools run on the event loop and should be quick: slow
+     work belongs in a background job, as project work does.
   4. Our own messages (background news, typed turns) wait while the person is
-     talking, while a reply is open, and for a moment after the person stops,
-     while the server starts its own reply.
+     talking, while a reply is open, while a tool call is open, and for a moment
+     after the person stops, while the server starts its own reply.
 """
 import asyncio
 import json
@@ -30,6 +34,7 @@ import os
 import re
 import sys
 import time
+from dataclasses import replace
 
 import settings
 import tools
@@ -58,6 +63,7 @@ class Turns:
         self.create_sent_at = None    # when our response.create went out, until its reply starts
         self.auto_reply_until = 0.0   # the server may be about to reply on its own until then
         self.tool_calls = {}          # reply id -> [calls], from appearing until answered or dropped
+        self.pending = set()          # tasks running tools and sending their results
 
     @property
     def tools_in_flight(self):
@@ -68,9 +74,13 @@ class Turns:
             self.create_sent_at = None
         return self.create_sent_at is not None
 
+    def floor_free(self):
+        """Nobody is talking and no reply is open or about to start."""
+        return not (self.user_speaking or self.open_reply or self.waiting_for_create()
+                    or time.monotonic() < self.auto_reply_until)
+
     def can_send(self):
-        return not (self.user_speaking or self.open_reply or self.tools_in_flight
-                    or self.waiting_for_create() or time.monotonic() < self.auto_reply_until)
+        return self.floor_free() and not self.tools_in_flight
 
     def sent_create(self):
         self.create_sent_at = time.monotonic()
@@ -169,8 +179,8 @@ async def handle_events(dialog, body, performer, context, turns, stop_after_turn
             had_calls = await answer_tool_calls(dialog, turns, done_id, status, performer, context)
             if not performer.busy.is_set() and not had_calls:
                 body.set_state("rest")   # it decided not to answer (they hadn't finished)
-            # After tool calls another reply follows, so the turn isn't over yet
-            if stop_after_turn and status != "in_progress" and not had_calls:
+            # While tool calls are open another reply is still to come, so the turn isn't over yet
+            if stop_after_turn and status != "in_progress" and not had_calls and not turns.tools_in_flight:
                 return
 
 
@@ -188,30 +198,46 @@ def note_call(turns, reply_id, item_id, call_id, name):
 
 
 async def answer_tool_calls(dialog, turns, reply_id, status, performer, context):
-    """Rules 1 and 2: once a reply is done, answer all its calls, then one response.create.
-    Returns whether the reply had any tool calls."""
+    """Rules 1-3: once a reply is done, run its tool calls, then send all the results and one
+    response.create when the person and the model are quiet. Returns whether the reply had calls."""
     calls = turns.tool_calls.get(reply_id) or []
     if not calls:
         turns.tool_calls.pop(reply_id, None)
         return False
-    try:
-        if status != "completed":
-            # The server dropped these calls with the reply; answering one would break the history
-            for call in calls:
-                print(f"      (dropped {call['name']}: the reply was {status})")
-            return True
-        context.reply_id, context.user_turns = reply_id, performer.user_turns
+    if status == "failed":
+        # The server dropped these calls with the reply; answering one would break the history
         for call in calls:
-            try:
-                args = json.loads(call["arguments"] or "{}")
-            except json.JSONDecodeError:
-                args = None
-            output = (tools.run(call["name"], args, context) if isinstance(args, dict)
-                      else {"error": "the arguments weren't valid JSON"})
+            print(f"      (dropped {call['name']}: the reply failed)")
+        turns.tool_calls.pop(reply_id, None)
+        return True
+    context = replace(context, reply_id=reply_id, user_turns=performer.user_turns)
+    outputs = [run_call(call, context) for call in calls]
+    task = asyncio.create_task(send_results(dialog, turns, reply_id, calls, outputs))
+    turns.pending.add(task)  # keep a reference until it's done
+    task.add_done_callback(turns.pending.discard)
+    return True
+
+
+def run_call(call, context):
+    try:
+        args = json.loads(call["arguments"] or "{}")
+    except json.JSONDecodeError:
+        return {"error": "the arguments weren't valid JSON"}
+    if not isinstance(args, dict):
+        return {"error": "the arguments weren't a JSON object"}
+    return tools.run(call["name"], args, context)
+
+
+async def send_results(dialog, turns, reply_id, calls, outputs):
+    try:
+        while not turns.floor_free():  # the person is talking, or the model is mid-reply
+            await asyncio.sleep(0.1)
+        for call, output in zip(calls, outputs):
             await dialog.tool_output(call["call_id"], output)  # call_id exactly as it came
         await dialog.create_response()
         turns.sent_create()
-        return True
+    except Exception as error:  # e.g. the connection closed
+        print(f"[tools] couldn't send results: {error!r}")
     finally:
         turns.tool_calls.pop(reply_id, None)
 

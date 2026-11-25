@@ -8,5 +8,5 @@ as its `poly_knowledge` brief at the start of every conversation.
 - When Raven answers from a topic, the terminal shows `[knowledge] used: <name>`.
 - This README and files starting with `_` are skipped. Copy `_example.md` to start a topic.
 - Everything Raven is given (prompts, tools, knowledge) shares the model's 32k-token
-  context, so keep the total modest. PolyAI suggests keeping instructions and tools
-  well under 20k tokens.
+  context, so keep the total modest: aim for about 2,000 words of instructions plus
+  the tool definitions.

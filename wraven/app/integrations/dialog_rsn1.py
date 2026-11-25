@@ -60,7 +60,7 @@ class DialogRSN1:
             self.ws = await websockets.connect(self.url, additional_headers={"X-API-KEY": self.api_key})
         except InvalidStatus as error:
             raise DialogError(f"connection refused (HTTP {error.response.status_code}). Check "
-                              "POLY_API_KEY, and POLY_URL if your workspace is regional.") from None
+                              "POLY_API_KEY, and DIALOG_REALTIME_URL (in .env) if your Studio is on another host.") from None
         self.loop = asyncio.get_running_loop()
         await self.ws.recv()  # session.created
         session = {

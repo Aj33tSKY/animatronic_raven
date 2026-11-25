@@ -8,7 +8,8 @@ A template for new tools. To use it:
                                                TOOLS = body.TOOLS + dice.TOOLS + project_work.TOOLS
     3. optionally, say when to use them in a numbered prompt, e.g. prompts/8-dice.md
 
-then restart. Each entry in TOOLS is exactly what Dialog-RSN-1 is told about the tool,
+then restart. The function takes `context` first, then one parameter for every property in the
+schema, and returns a dict ({"error": ...} if it failed). Each entry in TOOLS is exactly what Dialog-RSN-1 is told about the tool,
 plus "run": the function to call. The description is what the model reads to decide
 when to use the tool, so write it for the model: what it does and when to call it.
 """
