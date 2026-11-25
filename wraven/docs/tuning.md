@@ -47,4 +47,4 @@ again from the Arduino IDE.
 | It replies before you've finished | Dialog-RSN-1 decides; steer it in `prompts/4-turn-taking.md`. Pausing after a complete sentence reads as finished |
 | Personality, style, games | Edit the files in `app/prompts/` |
 | It gets a fact wrong | Add or fix a topic in `app/knowledge/` |
-| Connection refused (401) | Check `POLY_API_KEY` in `.env`, and that no old key is `export`ed in the Terminal. Regional workspaces need `POLY_URL` set |
+| Connection refused (401) | Check `POLY_API_KEY` in `.env`, and that no old key is `export`ed in the Terminal. A key only works on the host of the Studio it came from: set `DIALOG_REALTIME_URL` (see `.env.example`) |

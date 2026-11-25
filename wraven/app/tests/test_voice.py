@@ -49,3 +49,21 @@ def test_mac_voice_is_the_last_resort(monkeypatch):
     calls = fakes(monkeypatch, eleven_error=RuntimeError("down"), piper_error=RuntimeError("missing"))
     voice.synthesize("One.", 16000)
     assert calls == ["elevenlabs", "piper", "say"]
+
+
+def test_piper_downloads_again_when_only_half_the_voice_is_there(monkeypatch, tmp_path):
+    import piper
+    import piper.download_voices
+    from audio import voice
+    (tmp_path / f"{settings.PIPER_VOICE}.onnx").write_bytes(b"half a download")   # no .onnx.json
+    downloads = []
+
+    def fake_download(name, directory):
+        downloads.append(name)
+        (directory / f"{name}.onnx").write_bytes(b"model")
+        (directory / f"{name}.onnx.json").write_text("{}")
+    monkeypatch.setattr(settings, "PIPER_VOICES_DIR", tmp_path)
+    monkeypatch.setattr(piper.download_voices, "download_voice", fake_download)
+    monkeypatch.setattr(piper.PiperVoice, "load", lambda model: "loaded")
+    monkeypatch.setattr(voice, "piper_voice", None)
+    assert voice.load_piper() == "loaded" and downloads == [settings.PIPER_VOICE]

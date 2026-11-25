@@ -28,7 +28,7 @@ SQUAWK_SOUNDS = range(8, 15)            # 0008.mp3 - 0014.mp3
 
 
 # --- Dialog-RSN-1 (PolyAI) [BOILERPLATE] -------------------------------------
-POLY_URL = os.environ.get("DIALOG_REALTIME_URL", "wss://api.studio.poly.ai/v1/realtime")
+POLY_URL = os.environ.get("DIALOG_REALTIME_URL") or "wss://api.studio.poly.ai/v1/realtime"  # blank in .env = default
                               # regional workspaces use their own host, e.g.
                               # "wss://api.us.poly.ai/v1/realtime"
 

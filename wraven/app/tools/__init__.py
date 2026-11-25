@@ -15,8 +15,10 @@ Every tool in TOOLS is offered to Raven. To add tools, copy _example.py to a new
 edit it, and add its TOOLS below; how Raven should use them goes in a numbered file in
 prompts/. To take tools away, remove them from TOOLS.
 
-A tool's function receives `context` first, then its arguments, and returns a dict
-that's sent back to Dialog-RSN-1 as the result ({"error": ...} if it didn't work).
+A tool's function receives `context` first, then one argument for every property in its schema,
+and returns a dict that's sent back to Dialog-RSN-1 as the result ({"error": ...} if it didn't
+work; an exception becomes an error too, so the conversation carries on). It runs on the event
+loop, so keep it quick: slow work belongs in a background job, as project work does.
 context has:
   context.performer   queue speech, moves and sounds: performer.add("act", "shake", context.reply_id)
   context.wren        the project-work client, or None
@@ -62,5 +64,6 @@ def run(name, args, context):
         return entry["run"](context, **args)
     except TypeError as error:  # missing or unexpected arguments
         return {"error": f"bad arguments for {name}: {error}"}
-    except (KeyError, ValueError) as error:
-        return {"error": str(error)}
+    except Exception as error:  # a tool can raise anything (KeyError, ConnectionError, ...)
+        print(f"[tool] {name} failed: {error!r}")
+        return {"error": str(error) or type(error).__name__}

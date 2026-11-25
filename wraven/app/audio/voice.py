@@ -56,7 +56,8 @@ def load_piper():
             from piper import PiperVoice
             from piper.download_voices import download_voice
             model = settings.PIPER_VOICES_DIR / f"{settings.PIPER_VOICE}.onnx"
-            if not model.exists():
+            config = model.with_name(model.name + ".json")  # both files are needed: an interrupted download leaves one
+            if not (model.exists() and config.exists()):
                 print(f"[voice] downloading the {settings.PIPER_VOICE} voice (once, about 60 MB)")
                 settings.PIPER_VOICES_DIR.mkdir(exist_ok=True)
                 download_voice(settings.PIPER_VOICE, settings.PIPER_VOICES_DIR)

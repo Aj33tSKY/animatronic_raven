@@ -78,15 +78,16 @@ left, then right" arrives as two replies, one call each.
 A few ordering rules keep the session healthy (breaking one makes later replies fail with
 `generation_failed`); they're listed at the top of `conversation_runtime/session.py`:
 
-- A call is answered only once its reply is **done and completed**. If the reply was
-  cancelled (you interrupted) or failed, its call is dropped, never answered.
+- A call is answered once its reply is **done**: completed, or cancelled because you
+  interrupted (the call stays open in the conversation, so its result is still owed; it
+  goes back once you've finished talking). Only a failed reply's calls are dropped.
 - A reply's results go back together, followed by **one** `response.create`, and the
   `call_id` is passed back exactly as it came.
 - While a call is in flight, **nothing else** goes into the conversation. Our own
   messages (background news, typed turns) also wait while you're talking, while a reply
   is open, and for a moment after you stop, while the server starts its own reply.
 
-A tool that fails returns `{"error": ...}`, and `prompts/6-tool-results.md` tells Raven to
+A tool that fails returns `{"error": ...}` (any exception a tool raises becomes one), and `prompts/6-tool-results.md` tells Raven to
 say so plainly rather than pretend it worked.
 
 - **Body** (`tools/body.py`): `caw`, `turn_head`, `shake_head` and `set_eyes` queue a move or

@@ -46,6 +46,13 @@ def test_bad_calls_come_back_as_errors_for_the_model():
     assert "error" in tools.run("no_such_tool", {}, c)
 
 
+def test_any_exception_comes_back_as_an_error_not_a_crash(monkeypatch):
+    def broken(context):
+        raise ConnectionError("Wren is unreachable")
+    monkeypatch.setattr(tools, "TOOLS", [{"name": "broken", "description": "x", "run": broken}])
+    assert tools.run("broken", {}, context()) == {"error": "Wren is unreachable"}
+
+
 def test_project_work_needs_a_confirmed_read_back():
     c = context(wren=FakeWren())
     run = lambda name, turns, **args: tools.run(name, args, _with_turns(c, turns))
