@@ -37,7 +37,7 @@ wraven/
     ├── hardware/            ← the physical crow: nano.py (USB), body.py (behaviour)
     ├── conversation_runtime/  ← ties it together: briefing, performer, session
     │
-    ├── tests/               ← python -m pytest (no sound, no crow, no API calls)
+    ├── tests/               ← uv run pytest (no sound, no crow, no API calls)
     └── alt/                 ← the earlier Claude + Whisper version, for comparison
 ```
 
@@ -48,20 +48,21 @@ the ones you'll edit most. The rest is the engine, and rarely needs touching.
 
 ```bash
 cd wraven/app
-python3 -m venv .venv && source .venv/bin/activate     # Python 3.10 or newer
-pip install -r requirements.txt
 cp .env.example .env                                    # then add your keys
-python start.py --list-devices                          # set OUTPUT_DEVICE in settings.py
-python start.py --no-crow --say "Hello Raven"           # a typed turn, no Arduino needed
-python start.py                                         # talk to Raven
+uv run start.py --list-devices                          # set OUTPUT_DEVICE in settings.py
+uv run start.py --no-crow --say "Hello Raven"           # a typed turn, no Arduino needed
+uv run start.py                                         # talk to Raven
 ```
+
+Needs [uv](https://docs.astral.sh/uv/) (`brew install uv`). The first `uv run` installs Python 3.11
+and the exact dependency versions pinned in `uv.lock`; add a package with `uv add <package>`.
 
 Keys in `.env`: `POLY_API_KEY` (studio.poly.ai > API Keys), `ELEVENLABS_API_KEY`, and,
 for project work, `POLYAI_PAT` (a personal access token). Keys set in the Terminal with
 `export` take priority over the file.
 
-Other commands: `python start.py --test-sound` (lip sync and crow calls, no AI), and
-`python start.py --say "…" --say "yes"` for a typed, multi-turn conversation.
+Other commands: `uv run start.py --test-sound` (lip sync and crow calls, no AI), and
+`uv run start.py --say "…" --say "yes"` for a typed, multi-turn conversation.
 
 Building the crow itself: print the parts ([wraven/model/](wraven/model/README.md)), assemble
 them ([assembly.md](wraven/docs/assembly.md)), and wire it up ([hardware.md](wraven/docs/hardware.md)).
@@ -86,7 +87,7 @@ only touch the CUSTOMISE files:
 | — not needed | `app/alt/` | The earlier Claude + Whisper version |
 
 **A live build in four steps:** write `prompts/`, add facts to `knowledge/`, copy
-`tools/_example.py` for a new tool and add it to `TOOLS`, then run `python start.py`.
+`tools/_example.py` for a new tool and add it to `TOOLS`, then run `uv run start.py`.
 
 ## Making changes
 
@@ -107,7 +108,7 @@ exactly what Dialog-RSN-1 is told about the tool (name, description, parameters)
 **Knobs.** Voice, volume, echo mode, neck liveliness, eyes and the project-work account
 are in `wraven/app/settings.py`, grouped and commented.
 
-After changing code, run `python -m pytest` in `wraven/app/` to check interrupts, tools,
+After changing code, run `uv run pytest` in `wraven/app/` to check interrupts, tools,
 knowledge and project work still behave.
 
 ## Project work (PolyAI's Wren, behind the scenes)
@@ -123,7 +124,7 @@ To turn it on: put `POLYAI_PAT` in `.env`, and fill in `WREN_ACCOUNT_ID` and
 `WREN_PROJECTS` in `settings.py`. Without them, Raven still offers project work but says
 it can't do it when asked; to remove it entirely, take `project_work.TOOLS` out of
 `tools/__init__.py` and delete `prompts/7-project-work.md`. To try Wren on its own and see its raw events:
-`python -m integrations.wren --project "Demo restaurant" "What topics does it have?"`.
+`uv run python -m integrations.wren --project "Demo restaurant" "What topics does it have?"`.
 Raw events are saved in `wraven/app/logs/` (git ignores it).
 
 ## Credits
